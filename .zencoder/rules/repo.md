@@ -67,6 +67,9 @@ pnpm preview
 - `/api/pixabay/videos`: Proxy for Pixabay video API
 - `/api/health`: Health check endpoint
 
+## Testing
+**Target Framework**: Playwright (default for React applications)
+
 ## Client Application
 **Port**: 5173 (default)
 **Entry Point**: src/main.tsx

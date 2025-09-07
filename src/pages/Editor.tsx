@@ -7,6 +7,18 @@ import styles from './Editor.module.scss';
 import Button from '../components/ui/Button';
 import { TextArea, Select, TextInput } from '../components/ui/Input';
 import Card from '../components/ui/Card';
+import DraggableText from '../components/DraggableText';
+import ShapeTools from '../components/ShapeTools';
+import CropTools from '../components/CropTools';
+import TransformTools from '../components/TransformTools';
+import {
+    saveEditorState,
+    loadEditorState,
+    clearEditorState,
+    resetEditorDefaults,
+    type TextElement,
+    type FilterSettings
+} from '../utils/localStorage';
 
 // Advanced editor types
 type MediaType = 'image' | 'video' | 'gradient';
@@ -14,62 +26,59 @@ type SearchKind = 'images' | 'videos';
 type Tool = 'text' | 'shape' | 'filter' | 'overlay' | 'crop' | 'transform';
 type BlendMode = 'normal' | 'multiply' | 'screen' | 'overlay' | 'soft-light' | 'hard-light' | 'color-dodge' | 'color-burn';
 
-interface TextElement {
+const MAX_TEXT_ELEMENTS = 5;
+
+interface ShapeElement {
     id: string;
-    text: string;
+    type: 'rectangle' | 'circle' | 'line' | 'arrow';
     x: number;
     y: number;
-    fontSize: number;
-    fontFamily: string;
-    color: string;
-    fontWeight: string;
-    textAlign: 'left' | 'center' | 'right';
-    rotation: number;
+    width: number;
+    height: number;
+    fill: string;
+    stroke: string;
+    strokeWidth: number;
     opacity: number;
-    letterSpacing: number;
-    lineHeight: number;
-    shadow: {
-        enabled: boolean;
-        offsetX: number;
-        offsetY: number;
-        blur: number;
-        color: string;
-    };
-    stroke: {
-        enabled: boolean;
-        width: number;
-        color: string;
-    };
+    rotation: number;
 }
 
-interface FilterSettings {
-    brightness: number;
-    contrast: number;
-    saturation: number;
-    blur: number;
-    sepia: number;
-    hueRotate: number;
-    invert: number;
-    grayscale: number;
-    opacity: number;
+interface CropSettings {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    aspectRatio: 'free' | '1:1' | '4:3' | '16:9' | '9:16' | '3:4';
+}
+
+interface TransformSettings {
+    scaleX: number;
+    scaleY: number;
+    rotation: number;
+    skewX: number;
+    skewY: number;
+    flipH: boolean;
+    flipV: boolean;
 }
 
 export default function Editor() {
+    // Load initial state from localStorage
+    const savedState = loadEditorState();
+
     // Basic state
-    const [quote, setQuote] = useState('while (struggling) { keepLearning(); } // Success is loading...');
-    const [mediaType, setMediaType] = useState<MediaType>('gradient');
+    const [quote, setQuote] = useState(savedState.quote || 'while (struggling) { keepLearning(); } // Success is loading...');
+    const [mediaType, setMediaType] = useState<MediaType>((savedState.mediaType as MediaType) || 'gradient');
     const [searchKind, setSearchKind] = useState<SearchKind>('images');
     const [results, setResults] = useState<any[]>([]);
     const [query, setQuery] = useState('coding background');
-    const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
+    const [selectedUrl, setSelectedUrl] = useState<string | null>(savedState.selectedUrl || null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Advanced editor state
     const [activeTool, setActiveTool] = useState<Tool>('text');
-    const [textElements, setTextElements] = useState<TextElement[]>([]);
+    const [textElements, setTextElements] = useState<TextElement[]>(savedState.textElements || []);
     const [selectedElement, setSelectedElement] = useState<string | null>(null);
-    const [filters, setFilters] = useState<FilterSettings>({
+    const [filters, setFilters] = useState<FilterSettings>(savedState.filters || {
         brightness: 100,
         contrast: 100,
         saturation: 100,
@@ -80,15 +89,37 @@ export default function Editor() {
         grayscale: 0,
         opacity: 100
     });
-    const [blendMode, setBlendMode] = useState<BlendMode>('normal');
-    const [overlayColor, setOverlayColor] = useState('#000000');
-    const [overlayOpacity, setOverlayOpacity] = useState(0.3);
-    const [gradientAngle, setGradientAngle] = useState(135);
-    const [gradientColors, setGradientColors] = useState(['#667eea', '#764ba2']);
+    const [blendMode, setBlendMode] = useState<BlendMode>((savedState.blendMode as BlendMode) || 'normal');
+    const [overlayColor, setOverlayColor] = useState(savedState.overlayColor || '#000000');
+    const [overlayOpacity, setOverlayOpacity] = useState(savedState.overlayOpacity || 0.3);
+    const [gradientAngle, setGradientAngle] = useState(savedState.gradientAngle || 135);
+    const [gradientColors, setGradientColors] = useState(savedState.gradientColors || ['#667eea', '#764ba2']);
+
+    // New state for additional tools
+    const [shapes, setShapes] = useState<ShapeElement[]>(savedState.shapes || []);
+    const [selectedShape, setSelectedShape] = useState<string | null>(null);
+    const [cropSettings, setCropSettings] = useState<CropSettings>(savedState.cropSettings || {
+        x: 0,
+        y: 0,
+        width: 1080,
+        height: 1920,
+        aspectRatio: 'free'
+    });
+    const [transformSettings, setTransformSettings] = useState<TransformSettings>(savedState.transformSettings || {
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+        skewX: 0,
+        skewY: 0,
+        flipH: false,
+        flipV: false
+    });
+    const [isDragging, setIsDragging] = useState(false);
 
     // Canvas refs
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
+    const canvasContainerRef = useRef<HTMLDivElement | null>(null);
     const [videoReady, setVideoReady] = useState(false);
 
     const width = 1080;
@@ -108,8 +139,13 @@ export default function Editor() {
         return `linear-gradient(135deg, ${t.bgGradient[0]} 0%, ${t.bgGradient[1]} 100%)`;
     }, [ui.themeId, mediaType, gradientAngle, gradientColors]);
 
-    // Add text element
+    // Add text element with 5-element limit
     const addTextElement = useCallback(() => {
+        if (textElements.length >= MAX_TEXT_ELEMENTS) {
+            alert(`Maximum ${MAX_TEXT_ELEMENTS} text elements allowed!`);
+            return;
+        }
+
         const newElement: TextElement = {
             id: Date.now().toString(),
             text: 'New Text',
@@ -139,7 +175,7 @@ export default function Editor() {
         };
         setTextElements(prev => [...prev, newElement]);
         setSelectedElement(newElement.id);
-    }, []);
+    }, [textElements.length]);
 
     // Update selected text element
     const updateSelectedElement = useCallback((updates: Partial<TextElement>) => {
@@ -187,6 +223,25 @@ export default function Editor() {
         doSearch();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchKind]);
+
+    // Save state changes to localStorage
+    useEffect(() => {
+        saveEditorState({
+            textElements,
+            filters,
+            gradientColors,
+            gradientAngle,
+            overlayColor,
+            overlayOpacity,
+            blendMode,
+            quote,
+            mediaType,
+            selectedUrl,
+            shapes,
+            cropSettings,
+            transformSettings
+        });
+    }, [textElements, filters, gradientColors, gradientAngle, overlayColor, overlayOpacity, blendMode, quote, mediaType, selectedUrl, shapes, cropSettings, transformSettings]);
 
     // Draw preview to canvas
     useEffect(() => {
@@ -249,7 +304,7 @@ export default function Editor() {
             await overlay(ctx);
         };
         run();
-    }, [mediaType, selectedUrl, quote, textElements, filters, blendMode, gradientAngle, gradientColors, overlayColor, overlayOpacity]);
+    }, [mediaType, selectedUrl, quote, textElements, filters, blendMode, gradientAngle, gradientColors, overlayColor, overlayOpacity, shapes]);
 
     // Overlay rendering
     async function overlay(ctx: CanvasRenderingContext2D) {
@@ -293,6 +348,11 @@ export default function Editor() {
         for (const element of textElements) {
             drawTextElement(ctx, element);
         }
+
+        // Draw shapes
+        for (const shape of shapes) {
+            drawShapeElement(ctx, shape);
+        }
     }
 
     // Draw individual text element
@@ -330,6 +390,91 @@ export default function Editor() {
 
         // Draw text
         ctx.fillText(element.text, element.x, element.y);
+
+        ctx.restore();
+    }
+
+    // Draw individual shape element
+    function drawShapeElement(ctx: CanvasRenderingContext2D, shape: ShapeElement) {
+        ctx.save();
+
+        // Apply rotation and opacity
+        ctx.globalAlpha = shape.opacity;
+
+        if (shape.rotation !== 0) {
+            ctx.translate(shape.x + shape.width / 2, shape.y + shape.height / 2);
+            ctx.rotate(shape.rotation * Math.PI / 180);
+            ctx.translate(-(shape.x + shape.width / 2), -(shape.y + shape.height / 2));
+        }
+
+        // Set stroke properties
+        ctx.strokeStyle = shape.stroke;
+        ctx.lineWidth = shape.strokeWidth;
+
+        // Set fill properties
+        if (shape.fill !== 'transparent') {
+            ctx.fillStyle = shape.fill;
+        }
+
+        // Draw shape based on type
+        switch (shape.type) {
+            case 'rectangle':
+                if (shape.fill !== 'transparent') {
+                    ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+                }
+                if (shape.strokeWidth > 0) {
+                    ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+                }
+                break;
+
+            case 'circle':
+                const centerX = shape.x + shape.width / 2;
+                const centerY = shape.y + shape.height / 2;
+                const radius = Math.min(shape.width, shape.height) / 2;
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+
+                if (shape.fill !== 'transparent') {
+                    ctx.fill();
+                }
+                if (shape.strokeWidth > 0) {
+                    ctx.stroke();
+                }
+                break;
+
+            case 'line':
+                ctx.beginPath();
+                ctx.moveTo(shape.x, shape.y + shape.height / 2);
+                ctx.lineTo(shape.x + shape.width, shape.y + shape.height / 2);
+                ctx.stroke();
+                break;
+
+            case 'arrow':
+                const arrowHeadSize = 20;
+                const arrowY = shape.y + shape.height / 2;
+
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(shape.x, arrowY);
+                ctx.lineTo(shape.x + shape.width - arrowHeadSize, arrowY);
+                ctx.stroke();
+
+                // Draw arrow head
+                ctx.beginPath();
+                ctx.moveTo(shape.x + shape.width, arrowY);
+                ctx.lineTo(shape.x + shape.width - arrowHeadSize, arrowY - arrowHeadSize / 2);
+                ctx.lineTo(shape.x + shape.width - arrowHeadSize, arrowY + arrowHeadSize / 2);
+                ctx.closePath();
+
+                if (shape.fill !== 'transparent') {
+                    ctx.fill();
+                }
+                if (shape.strokeWidth > 0) {
+                    ctx.stroke();
+                }
+                break;
+        }
 
         ctx.restore();
     }
@@ -461,12 +606,12 @@ export default function Editor() {
     const selectedElementData = textElements.find(el => el.id === selectedElement);
 
     const tools = [
-        { id: 'text', icon: '📝', label: 'Text' },
-        { id: 'shape', icon: '⭕', label: 'Shapes' },
-        { id: 'filter', icon: '🎨', label: 'Filters' },
-        { id: 'overlay', icon: '🎭', label: 'Overlays' },
-        { id: 'crop', icon: '✂️', label: 'Crop' },
-        { id: 'transform', icon: '🔄', label: 'Transform' }
+        { id: 'text', icon: 'T', label: 'Text' },
+        { id: 'shape', icon: '◇', label: 'Shapes' },
+        { id: 'filter', icon: 'F', label: 'Filters' },
+        { id: 'overlay', icon: 'O', label: 'Overlays' },
+        { id: 'crop', icon: 'C', label: 'Crop' },
+        { id: 'transform', icon: 'R', label: 'Transform' }
     ];
 
     return (
@@ -498,13 +643,41 @@ export default function Editor() {
 
                 <div className={styles.toolbarSection}>
                     <Button variant="outline" size="sm" onClick={() => setMediaType('gradient')}>
-                        🎨 Gradient
+                        Gradient
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            if (confirm('This will clear all settings and text elements. Continue?')) {
+                                clearEditorState();
+                                // Reset all state to defaults
+                                setTextElements([]);
+                                setSelectedElement(null);
+                                setFilters({
+                                    brightness: 100, contrast: 100, saturation: 100, blur: 0,
+                                    sepia: 0, hueRotate: 0, invert: 0, grayscale: 0, opacity: 100
+                                });
+                                setBlendMode('normal');
+                                setOverlayColor('#000000');
+                                setOverlayOpacity(0.3);
+                                setGradientAngle(135);
+                                setGradientColors(['#667eea', '#764ba2']);
+                                setQuote('while (struggling) { keepLearning(); } // Success is loading...');
+                                setMediaType('gradient');
+                                setSelectedUrl(null);
+                                setShapes([]);
+                                setSelectedShape(null);
+                            }
+                        }}
+                    >
+                        Reset
                     </Button>
                     <Button variant="outline" size="sm" onClick={exportJPEG}>
-                        📁 JPEG
+                        JPEG
                     </Button>
                     <Button variant="primary" size="sm" onClick={exportPNG}>
-                        💾 PNG
+                        PNG
                     </Button>
                 </div>
             </header>
@@ -516,8 +689,15 @@ export default function Editor() {
                         <div className={styles.toolPanel}>
                             <div className={styles.panelHeader}>
                                 <h3>Text Tools</h3>
-                                <Button size="sm" onClick={addTextElement}>
-                                    ➕ Add Text
+                                <Button
+                                    size="sm"
+                                    onClick={addTextElement}
+                                    disabled={textElements.length >= MAX_TEXT_ELEMENTS}
+                                    title={textElements.length >= MAX_TEXT_ELEMENTS
+                                        ? `Maximum ${MAX_TEXT_ELEMENTS} text elements allowed`
+                                        : `Add Text (${textElements.length}/${MAX_TEXT_ELEMENTS} used)`}
+                                >
+                                    Add Text ({textElements.length}/{MAX_TEXT_ELEMENTS})
                                 </Button>
                             </div>
 
@@ -536,7 +716,7 @@ export default function Editor() {
                                     <div className={styles.panelHeader}>
                                         <label>Selected Text Element</label>
                                         <Button size="sm" variant="outline" onClick={deleteSelectedElement}>
-                                            🗑️
+                                            Delete
                                         </Button>
                                     </div>
 
@@ -705,7 +885,7 @@ export default function Editor() {
                                                 if (selectedElement === element.id) setSelectedElement(null);
                                             }}
                                         >
-                                            ❌
+                                            ×
                                         </Button>
                                     </div>
                                 ))}
@@ -896,7 +1076,7 @@ export default function Editor() {
                                         onClick={() => setGradientColors([...gradientColors, '#ffffff'])}
                                         disabled={gradientColors.length >= 5}
                                     >
-                                        ➕ Add Color
+                                        Add Color
                                     </Button>
                                     <Button
                                         size="sm"
@@ -904,10 +1084,77 @@ export default function Editor() {
                                         onClick={() => setGradientColors(gradientColors.slice(0, -1))}
                                         disabled={gradientColors.length <= 2}
                                     >
-                                        ➖ Remove
+                                        Remove
                                     </Button>
                                 </div>
                             </Card>
+                        </div>
+                    )}
+
+                    {activeTool === 'shape' && (
+                        <div className={styles.toolPanel}>
+                            <ShapeTools
+                                shapes={shapes}
+                                onAddShape={(shape) => {
+                                    const newShape = { ...shape, id: Date.now().toString() };
+                                    setShapes(prev => [...prev, newShape]);
+                                    setSelectedShape(newShape.id);
+                                }}
+                                onUpdateShape={(id, updates) => {
+                                    setShapes(prev => prev.map(shape =>
+                                        shape.id === id ? { ...shape, ...updates } : shape
+                                    ));
+                                }}
+                                onDeleteShape={(id) => {
+                                    setShapes(prev => prev.filter(shape => shape.id !== id));
+                                    if (selectedShape === id) setSelectedShape(null);
+                                }}
+                                selectedShape={selectedShape}
+                                onSelectShape={setSelectedShape}
+                            />
+                        </div>
+                    )}
+
+                    {activeTool === 'crop' && (
+                        <div className={styles.toolPanel}>
+                            <CropTools
+                                cropSettings={cropSettings}
+                                onUpdateCrop={(updates) => setCropSettings(prev => ({ ...prev, ...updates }))}
+                                onApplyCrop={() => {
+                                    // Apply crop to canvas
+                                    console.log('Crop applied:', cropSettings);
+                                }}
+                                onResetCrop={() => setCropSettings({
+                                    x: 0,
+                                    y: 0,
+                                    width: 1080,
+                                    height: 1920,
+                                    aspectRatio: 'free'
+                                })}
+                                isActive={true}
+                            />
+                        </div>
+                    )}
+
+                    {activeTool === 'transform' && (
+                        <div className={styles.toolPanel}>
+                            <TransformTools
+                                transformSettings={transformSettings}
+                                onUpdateTransform={(updates) => setTransformSettings(prev => ({ ...prev, ...updates }))}
+                                onApplyTransform={() => {
+                                    // Apply transform to canvas
+                                    console.log('Transform applied:', transformSettings);
+                                }}
+                                onResetTransform={() => setTransformSettings({
+                                    scaleX: 1,
+                                    scaleY: 1,
+                                    rotation: 0,
+                                    skewX: 0,
+                                    skewY: 0,
+                                    flipH: false,
+                                    flipV: false
+                                })}
+                            />
                         </div>
                     )}
                 </aside>
@@ -915,7 +1162,12 @@ export default function Editor() {
                 {/* Center Canvas */}
                 <section className={styles.canvasArea}>
                     <div className={styles.canvasContainer}>
-                        <div className={styles.canvasShell} style={{ background: gradientCss }}>
+                        <div
+                            ref={canvasContainerRef}
+                            className={styles.canvasShell}
+                            style={{ background: gradientCss }}
+                            onClick={() => setSelectedElement(null)}
+                        >
                             {mediaType === 'video' && selectedUrl && (
                                 <video
                                     ref={videoRef}
@@ -930,6 +1182,26 @@ export default function Editor() {
                                 />
                             )}
                             <canvas ref={canvasRef} className={styles.canvas} />
+
+                            {/* Draggable Text Elements */}
+                            {textElements.map(element => (
+                                <DraggableText
+                                    key={element.id}
+                                    element={element}
+                                    isSelected={selectedElement === element.id}
+                                    containerRef={canvasContainerRef}
+                                    onUpdate={(id, updates) => {
+                                        setTextElements(prev => prev.map(el =>
+                                            el.id === id ? { ...el, ...updates } : el
+                                        ));
+                                    }}
+                                    onSelect={setSelectedElement}
+                                    onEdit={(id) => {
+                                        // Focus on the selected element for editing
+                                        setSelectedElement(id);
+                                    }}
+                                />
+                            ))}
                         </div>
 
                         <div className={styles.canvasInfo}>
@@ -947,8 +1219,8 @@ export default function Editor() {
                     <Card>
                         <div className={styles.searchControls}>
                             <Select value={searchKind} onChange={(e) => setSearchKind(e.target.value as SearchKind)}>
-                                <option value="images">🖼️ Images</option>
-                                <option value="videos">🎥 Videos</option>
+                                <option value="images">Images</option>
+                                <option value="videos">Videos</option>
                             </Select>
                             <TextInput
                                 value={query}
@@ -957,7 +1229,7 @@ export default function Editor() {
                                 onKeyPress={(e) => e.key === 'Enter' && doSearch()}
                             />
                             <Button onClick={doSearch} disabled={loading} size="sm">
-                                {loading ? '⏳' : '🔍'}
+                                {loading ? '...' : 'Search'}
                             </Button>
                         </div>
 

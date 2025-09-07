@@ -1,0 +1,119 @@
+@use '../styles/variables' as *;
+
+.cropTools {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+
+    @media (max-width: 768px) {
+        padding: 16px;
+        gap: 12px;
+    }
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: $color-text;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 8px;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+
+    label {
+        font-size: 12px;
+        font-weight: 500;
+        color: $color-text;
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
+.presetGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.presetButton {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 12px;
+    background: rgba($color-surface, 0.5);
+    border: 1px solid rgba($color-border, 0.3);
+    border-radius: 8px;
+    color: $color-text;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+
+    &:hover {
+        background: rgba($color-text, 0.05);
+        border-color: rgba($color-border, 0.5);
+    }
+
+    &:active {
+        background: rgba($color-primary, 0.1);
+        border-color: rgba($color-primary, 0.3);
+    }
+}
+
+.presetLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: $color-text;
+}
+
+.presetSize {
+    font-size: 10px;
+    color: $color-muted;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.cropPreview {
+    padding: 12px;
+    background: rgba($color-surface, 0.3);
+    border: 1px solid rgba($color-border, 0.2);
+    border-radius: 8px;
+}
+
+.previewLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-text;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cropInfo {
+    font-size: 11px;
+    color: $color-muted;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.5;
+}

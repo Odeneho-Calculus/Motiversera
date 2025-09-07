@@ -1,0 +1,68 @@
+@use '../styles/variables' as *;
+
+.draggableText {
+    position: absolute;
+    white-space: nowrap;
+    user-select: none;
+    transition: all 0.1s ease;
+
+    &.selected {
+        outline: 2px solid rgba($color-primary, 0.6);
+        outline-offset: 2px;
+    }
+
+    &.dragging {
+        z-index: 1001 !important;
+        transition: none;
+    }
+
+    &:hover:not(.dragging) {
+        outline: 1px solid rgba($color-primary, 0.3);
+        outline-offset: 1px;
+    }
+}
+
+.selectionIndicator {
+    position: absolute;
+    inset: -8px;
+    pointer-events: none;
+
+    .corner {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: $color-primary;
+        border: 1px solid white;
+        border-radius: 1px;
+
+        &:nth-child(1) {
+            top: 0;
+            left: 0;
+        }
+
+        &:nth-child(2) {
+            top: 0;
+            right: 0;
+        }
+
+        &:nth-child(3) {
+            bottom: 0;
+            left: 0;
+        }
+
+        &:nth-child(4) {
+            bottom: 0;
+            right: 0;
+        }
+    }
+}
+
+.textInput {
+    background: transparent !important;
+    outline: none !important;
+    min-width: 100px;
+
+    &::selection {
+        background: rgba($color-primary, 0.3);
+    }
+}

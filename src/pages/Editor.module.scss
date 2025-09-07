@@ -155,8 +155,28 @@
     background: rgba($color-surface, 0.5);
     border-right: 1px solid rgba($color-border, 0.3);
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
+    min-width: 0; // Prevent flex items from overflowing
+
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: rgba($color-border, 0.1);
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba($color-border, 0.3);
+        border-radius: 3px;
+
+        &:hover {
+            background: rgba($color-border, 0.5);
+        }
+    }
 
     @media (max-width: 768px) {
         height: auto;
@@ -183,6 +203,14 @@
     flex-direction: column;
     gap: 16px;
     height: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+
+    // Ensure child elements don't overflow
+    >* {
+        min-width: 0;
+        flex-shrink: 0;
+    }
 
     @media (max-width: 768px) {
         padding: 16px;

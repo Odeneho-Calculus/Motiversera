@@ -1,0 +1,230 @@
+@use '../styles/variables' as *;
+
+.transformTools {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+
+    @media (max-width: 768px) {
+        padding: 16px;
+        gap: 12px;
+    }
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: $color-text;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 8px;
+}
+
+.quickActions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    label {
+        font-size: 12px;
+        font-weight: 500;
+        color: $color-text;
+    }
+}
+
+.actionGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+
+.actionButton {
+    padding: 6px 8px;
+    background: rgba($color-surface, 0.5);
+    border: 1px solid rgba($color-border, 0.3);
+    border-radius: 6px;
+    color: $color-text;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    font-weight: 500;
+
+    &:hover {
+        background: rgba($color-text, 0.05);
+        border-color: rgba($color-border, 0.5);
+    }
+
+    &:active {
+        background: rgba($color-primary, 0.1);
+        border-color: rgba($color-primary, 0.3);
+    }
+}
+
+.scaleSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    label {
+        font-size: 12px;
+        font-weight: 500;
+        color: $color-text;
+    }
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: $color-muted;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        margin: 0;
+        accent-color: $color-primary;
+    }
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 12px;
+    align-items: center;
+
+    label {
+        font-size: 11px;
+        font-weight: 500;
+        color: $color-text;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.inputGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rangeInput {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: rgba($color-border, 0.3);
+    border-radius: 2px;
+    outline: none;
+    transition: all 0.2s ease;
+    flex: 1;
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: $color-primary;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    &::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: $color-primary;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+
+        &::-webkit-slider-thumb {
+            cursor: not-allowed;
+        }
+
+        &::-moz-range-thumb {
+            cursor: not-allowed;
+        }
+    }
+}
+
+.numberInput {
+    width: 60px;
+    font-size: 11px;
+    padding: 4px 6px;
+    text-align: center;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.rotationControls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.rotationValue {
+    font-size: 11px;
+    color: $color-muted;
+    font-family: 'JetBrains Mono', monospace;
+    min-width: 35px;
+    text-align: center;
+}
+
+.rotationButtons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+}
+
+.skewValue {
+    font-size: 11px;
+    color: $color-muted;
+    font-family: 'JetBrains Mono', monospace;
+    min-width: 30px;
+    text-align: center;
+}
+
+.flipControls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .checkboxLabel {
+        font-size: 12px;
+        color: $color-text;
+    }
+}
