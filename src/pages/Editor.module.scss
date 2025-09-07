@@ -2,69 +2,321 @@
 @use '../styles/mixins' as *;
 
 .wrapper {
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 16px;
+    display: flex;
+    flex-direction: column;
     height: 100vh;
+    background: $color-bg;
+    overflow: hidden;
 }
 
-.sidebar {
-    @include card(16px);
-    overflow: auto;
+// Toolbar
+.toolbar {
+    height: 56px;
+    background: rgba($color-surface, 0.95);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba($color-border, 0.5);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    @media (max-width: 768px) {
+        padding: 0 16px;
+        height: 48px;
+    }
 }
 
-.heading {
-    margin-top: 0;
+.toolbarSection {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+
+    @media (max-width: 768px) {
+        gap: 12px;
+    }
 }
 
-.controls {
-    @include grid-gap(12px);
+.logo {
+    display: flex;
+    align-items: center;
 }
 
-.actions {
-    @include flex-center(8px);
+.logoLink {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: $color-text;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &:hover {
+        text-decoration: none;
+        color: $color-primary;
+    }
 }
 
-.mediaGrid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+.logoIcon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, $color-primary, $color-accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.toolButtons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    @media (max-width: 768px) {
+        gap: 2px;
+    }
+}
+
+.toolButton {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    margin-top: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: $color-muted;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+
+    &:hover {
+        background: rgba($color-text, 0.05);
+        color: $color-text;
+        border-color: rgba($color-border, 0.3);
+    }
+
+    &.active {
+        background: rgba($color-primary, 0.1);
+        color: $color-primary;
+        border-color: rgba($color-primary, 0.3);
+    }
+
+    @media (max-width: 768px) {
+        padding: 6px 8px;
+        gap: 4px;
+
+        .toolLabel {
+            display: none;
+        }
+    }
 }
 
-.mediaButton {
-    padding: 0;
+.toolIcon {
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.thumb {
-    width: 100%;
-    display: block;
-    border-radius: $radius-1;
+.toolLabel {
+    font-size: 12px;
 }
 
-.center {
+// Main Layout
+.editorLayout {
     display: grid;
-    place-items: center;
+    grid-template-columns: 320px 1fr 300px;
+    gap: 0;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+
+    @media (max-width: 1200px) {
+        grid-template-columns: 280px 1fr 260px;
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        height: calc(100vh - 48px);
+    }
 }
 
-.canvas {
-    width: 360px;
-    height: 640px;
+// Panels
+.leftPanel,
+.rightPanel {
+    background: rgba($color-surface, 0.5);
+    border-right: 1px solid rgba($color-border, 0.3);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+
+    @media (max-width: 768px) {
+        height: auto;
+        max-height: 300px;
+        border-right: none;
+        border-bottom: 1px solid rgba($color-border, 0.3);
+    }
 }
 
-.hidden {
-    display: none;
+.rightPanel {
+    border-right: none;
+    border-left: 1px solid rgba($color-border, 0.3);
+
+    @media (max-width: 768px) {
+        border-left: none;
+        border-top: 1px solid rgba($color-border, 0.3);
+        order: 3;
+    }
+}
+
+.toolPanel {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+
+    @media (max-width: 768px) {
+        padding: 16px;
+        gap: 12px;
+    }
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h3,
+    h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: $color-text;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+}
+
+.panelSection {
+    padding-top: 16px;
+    border-top: 1px solid rgba($color-border, 0.2);
+    margin-top: 16px;
+
+    &:first-child {
+        padding-top: 0;
+        border-top: none;
+        margin-top: 0;
+    }
+}
+
+// Canvas Area
+.canvasArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 25% 25%, rgba($color-primary, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba($color-accent, 0.05) 0%, transparent 50%),
+        $color-bg;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(90deg, transparent 0%, rgba($color-border, 0.1) 50%, transparent 100%),
+            linear-gradient(0deg, transparent 0%, rgba($color-border, 0.1) 50%, transparent 100%);
+        background-size: 40px 40px;
+        pointer-events: none;
+        opacity: 0.3;
+    }
+
+    @media (max-width: 768px) {
+        padding: 16px;
+        order: 2;
+    }
+}
+
+.canvasContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
 }
 
 .canvasShell {
-    @include card(0);
     position: relative;
-    display: grid;
-    place-items: center;
-    width: 360px;
-    height: 640px;
+    border-radius: 16px;
     overflow: hidden;
-    background: linear-gradient(180deg, #0d1117, #1e1e1e);
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.3),
+        0 8px 24px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    width: 320px;
+    height: 568px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0d1117, #1e1e1e);
+    border: 1px solid rgba($color-border, 0.2);
+
+    // Phone-like appearance
+    &::before {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        z-index: 10;
+    }
+
+    @media (max-width: 768px) {
+        width: 280px;
+        height: 497px;
+    }
+
+    @media (max-width: 480px) {
+        width: 240px;
+        height: 427px;
+    }
+}
+
+.canvas {
+    width: 320px;
+    height: 568px;
+    border-radius: inherit;
+    position: relative;
+    z-index: 2;
+
+    @media (max-width: 768px) {
+        width: 280px;
+        height: 497px;
+    }
+
+    @media (max-width: 480px) {
+        width: 240px;
+        height: 427px;
+    }
 }
 
 .bgVideo {
@@ -74,12 +326,385 @@
     height: 100%;
     object-fit: cover;
     border-radius: inherit;
-    z-index: 0;
+    z-index: 1;
 }
 
-.canvas {
+.canvasInfo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: rgba($color-surface, 0.8);
+    border: 1px solid rgba($color-border, 0.3);
+    border-radius: 20px;
+    font-size: 12px;
+    color: $color-muted;
+    font-weight: 500;
+    backdrop-filter: blur(8px);
+}
+
+// Form Controls
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+
+    label {
+        font-size: 12px;
+        font-weight: 500;
+        color: $color-text;
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
+.filterGrid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+
+    label {
+        font-size: 11px;
+        font-weight: 500;
+        color: $color-text;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    span {
+        font-size: 11px;
+        color: $color-muted;
+        font-weight: 500;
+        text-align: right;
+        min-width: 40px;
+    }
+}
+
+.rangeInput {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: rgba($color-border, 0.3);
+    border-radius: 2px;
+    outline: none;
+    transition: all 0.2s ease;
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        background: linear-gradient(135deg, $color-primary, $color-accent);
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    &::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        background: linear-gradient(135deg, $color-primary, $color-accent);
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    &:hover {
+        background: rgba($color-border, 0.5);
+    }
+}
+
+.colorInput {
+    width: 100%;
+    height: 32px;
+    border: 1px solid rgba($color-border, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    outline: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: $color-primary;
+    }
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: $color-text;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: $color-primary;
+    }
+}
+
+// Search Controls
+.searchControls {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+// Media Grid
+.mediaGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+
+    @media (max-width: 768px) {
+        max-height: 200px;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    }
+}
+
+.mediaItem {
     position: relative;
-    z-index: 1; // always above bg video
-    width: 360px;
-    height: 640px;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    &.selected {
+        border-color: $color-primary;
+        box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+    }
+}
+
+.thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.mediaOverlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 50%);
+    display: flex;
+    align-items: flex-end;
+    padding: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    .mediaItem:hover & {
+        opacity: 1;
+    }
+}
+
+.mediaDimensions {
+    font-size: 10px;
+    color: white;
+    font-weight: 500;
+}
+
+// Text Elements
+.textElementsList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.textElementItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba($color-surface, 0.3);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: rgba($color-surface, 0.5);
+        border-color: rgba($color-border, 0.3);
+    }
+
+    &.selected {
+        background: rgba($color-primary, 0.1);
+        border-color: rgba($color-primary, 0.3);
+    }
+}
+
+.elementText {
+    font-size: 12px;
+    color: $color-text;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+// Gradient Controls
+.gradientColors {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.gradientColorItem {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    align-items: center;
+
+    label {
+        font-size: 11px;
+        color: $color-muted;
+    }
+}
+
+.gradientActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+// Error Message
+.error {
+    color: #ef4444;
+    font-size: 12px;
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 6px;
+}
+
+// Light theme overrides
+:root[data-theme='light'] {
+    .toolbar {
+        background: rgba(255, 255, 255, 0.95);
+        border-bottom-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .logoLink {
+        color: #111827;
+
+        &:hover {
+            color: $color-primary;
+        }
+    }
+
+    .toolButton {
+        color: #6b7280;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.02);
+            color: #111827;
+        }
+
+        &.active {
+            background: rgba($color-primary, 0.08);
+            color: $color-primary;
+        }
+    }
+
+    .leftPanel,
+    .rightPanel {
+        background: rgba(255, 255, 255, 0.5);
+        border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .panelHeader {
+
+        h3,
+        h4 {
+            color: #111827;
+        }
+    }
+
+    .panelSection {
+        border-top-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .canvasArea {
+        background:
+            radial-gradient(circle at 25% 25%, rgba($color-primary, 0.03) 0%, transparent 50%),
+            radial-gradient(circle at 75% 75%, rgba($color-accent, 0.03) 0%, transparent 50%),
+            #f9fafb;
+    }
+
+    .canvasShell {
+        background: white;
+        border-color: rgba(0, 0, 0, 0.08);
+        box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.08),
+            0 8px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    .canvasInfo {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: rgba(0, 0, 0, 0.08);
+        color: #6b7280;
+    }
+
+    .formGrid label,
+    .filterGrid label {
+        color: #111827;
+    }
+
+    .filterGrid span {
+        color: #6b7280;
+    }
+
+    .checkboxLabel {
+        color: #111827;
+    }
+
+    .textElementItem {
+        background: rgba(243, 244, 246, 0.3);
+
+        &:hover {
+            background: rgba(243, 244, 246, 0.5);
+        }
+
+        &.selected {
+            background: rgba($color-primary, 0.08);
+        }
+    }
+
+    .elementText {
+        color: #111827;
+    }
+
+    .error {
+        color: #dc2626;
+        background: rgba(220, 38, 38, 0.08);
+        border-color: rgba(220, 38, 38, 0.15);
+    }
 }

@@ -1,0 +1,437 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.footer {
+    background: rgba($color-surface, 0.95);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba($color-border, 0.5);
+    margin-top: auto;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg,
+                transparent,
+                rgba($color-primary, 0.3) 20%,
+                rgba($color-accent, 0.3) 80%,
+                transparent);
+    }
+}
+
+.footerContent {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+
+    @media (max-width: 768px) {
+        padding: 0 16px;
+    }
+}
+
+.footerMain {
+    padding: 60px 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 80px;
+    align-items: start;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+        gap: 60px;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        padding: 40px 0 32px;
+        gap: 40px;
+    }
+}
+
+// Brand section
+.brandSection {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    @media (max-width: 1024px) {
+        align-items: center;
+    }
+}
+
+.footerLogo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    width: fit-content;
+    transition: all 0.2s ease;
+
+    &:hover {
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+}
+
+.logoIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, $color-primary, $color-accent);
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba($color-primary, 0.3);
+
+    svg {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+.logoText {
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(135deg, $color-primary, $color-accent);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brandDescription {
+    color: $color-muted;
+    line-height: 1.6;
+    font-size: 14px;
+    margin: 0;
+    max-width: 300px;
+
+    @media (max-width: 1024px) {
+        max-width: 500px;
+    }
+}
+
+.socialLinks {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+
+    @media (max-width: 1024px) {
+        justify-content: center;
+    }
+}
+
+.socialLink {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba($color-text, 0.05);
+    border: 1px solid rgba($color-border, 0.3);
+    border-radius: 10px;
+    color: $color-muted;
+    text-decoration: none;
+    transition: all 0.3s ease;
+
+    &:hover {
+        background: rgba($color-primary, 0.1);
+        border-color: rgba($color-primary, 0.3);
+        color: $color-primary;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba($color-primary, 0.2);
+    }
+}
+
+// Links grid
+.linksGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 32px;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        text-align: left;
+    }
+}
+
+.linkSection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.linkTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: $color-text;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.linkList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.footerLink {
+    color: $color-muted;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    position: relative;
+    width: fit-content;
+
+    &::before {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 1px;
+        background: $color-primary;
+        transition: width 0.3s ease;
+    }
+
+    &:hover {
+        color: $color-text;
+        text-decoration: none;
+        transform: translateX(4px);
+
+        &::before {
+            width: 100%;
+        }
+    }
+}
+
+// Newsletter section
+.newsletterText {
+    color: $color-muted;
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.newsletter {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.newsletterInput {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba($color-bg, 0.5);
+    border: 1px solid rgba($color-border, 0.3);
+    border-radius: 8px;
+    color: $color-text;
+    font-size: 14px;
+    transition: all 0.2s ease;
+
+    &::placeholder {
+        color: $color-muted;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: $color-primary;
+        background: rgba($color-bg, 0.8);
+        box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+    }
+}
+
+.newsletterButton {
+    padding: 12px;
+    background: linear-gradient(135deg, $color-primary, $color-accent);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    width: 44px;
+    flex-shrink: 0;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba($color-primary, 0.3);
+        filter: brightness(1.1);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+// Footer bottom
+.footerBottom {
+    border-top: 1px solid rgba($color-border, 0.3);
+    padding: 24px 0;
+}
+
+.bottomContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+}
+
+.copyright {
+    color: $color-muted;
+    font-size: 13px;
+}
+
+.legalLinks {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+
+    @media (max-width: 480px) {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 16px;
+    }
+}
+
+.legalLink {
+    color: $color-muted;
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s ease;
+
+    &:hover {
+        color: $color-text;
+        text-decoration: none;
+    }
+}
+
+.buildInfo {
+    color: $color-muted;
+    font-size: 13px;
+}
+
+.buildText {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+// Light theme overrides
+:root[data-theme='light'] {
+    .footer {
+        background: rgba(255, 255, 255, 0.95);
+        border-top-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .brandDescription {
+        color: #6b7280;
+    }
+
+    .linkTitle {
+        color: #111827;
+    }
+
+    .footerLink {
+        color: #6b7280;
+
+        &:hover {
+            color: #111827;
+        }
+    }
+
+    .newsletterText {
+        color: #6b7280;
+    }
+
+    .newsletterInput {
+        background: rgba(243, 244, 246, 0.5);
+        border-color: rgba(0, 0, 0, 0.1);
+        color: #111827;
+
+        &::placeholder {
+            color: #9ca3af;
+        }
+
+        &:focus {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: $color-primary;
+        }
+    }
+
+    .socialLink {
+        background: rgba(0, 0, 0, 0.02);
+        border-color: rgba(0, 0, 0, 0.06);
+        color: #6b7280;
+
+        &:hover {
+            background: rgba($color-primary, 0.08);
+            border-color: rgba($color-primary, 0.2);
+            color: $color-primary;
+        }
+    }
+
+    .copyright {
+        color: #6b7280;
+    }
+
+    .legalLink {
+        color: #6b7280;
+
+        &:hover {
+            color: #111827;
+        }
+    }
+
+    .buildInfo {
+        color: #6b7280;
+    }
+
+    .footerBottom {
+        border-top-color: rgba(0, 0, 0, 0.06);
+    }
+}
+
+// Animation for footer reveal
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.footer {
+    animation: fadeInUp 0.6s ease-out;
+}
