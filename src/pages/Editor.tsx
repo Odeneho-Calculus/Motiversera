@@ -29,7 +29,7 @@ type SearchKind = 'images' | 'videos';
 type Tool = 'text' | 'shape' | 'filter' | 'overlay' | 'crop' | 'transform';
 type BlendMode = 'normal' | 'multiply' | 'screen' | 'overlay' | 'soft-light' | 'hard-light' | 'color-dodge' | 'color-burn';
 
-const MAX_TEXT_ELEMENTS = 5;
+const MAX_TEXT_ELEMENTS = 10;
 const MAX_SHAPE_ELEMENTS = 5;
 
 interface ShapeElement {
