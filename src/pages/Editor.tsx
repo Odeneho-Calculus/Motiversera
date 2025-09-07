@@ -772,16 +772,141 @@ export default function Editor() {
         const lines = element.text.split('\n');
         const lineHeight = element.fontSize * element.lineHeight;
 
-        lines.forEach((line, index) => {
-            const y = element.y + (index * lineHeight);
-
-            if (element.stroke.enabled) {
-                ctx.strokeText(line, element.x, y);
-            }
-            ctx.fillText(line, element.x, y);
-        });
+        if (element.isCodeSnippet) {
+            // Process the entire text for syntax highlighting, then draw line by line
+            drawSyntaxHighlightedText(ctx, element.text, element.x, element.y, element, lineHeight);
+        } else {
+            // Draw regular text line by line
+            lines.forEach((line, lineIndex) => {
+                const y = element.y + (lineIndex * lineHeight);
+                ctx.fillStyle = element.color;
+                if (element.stroke.enabled) {
+                    ctx.strokeStyle = element.stroke.color;
+                    ctx.lineWidth = element.stroke.width;
+                    ctx.strokeText(line, element.x, y);
+                }
+                ctx.fillText(line, element.x, y);
+            });
+        }
 
         ctx.restore();
+    }
+
+    function drawSyntaxHighlightedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, element: QuoteElement, lineHeight: number) {
+        // Basic syntax highlighting patterns (same as DraggableQuote)
+        const patterns = [
+            { pattern: /(\/\/.*$)/gm, color: element.codeColors.comment },
+            { pattern: /\b(while|for|if|else|function|const|let|var|return|class|extends|import|export|try|catch|finally)\b/g, color: element.codeColors.keyword },
+            { pattern: /(['"])((?:(?!\1)[^\\]|\\.)*)(\1)/g, color: element.codeColors.string },
+            { pattern: /\b\d+(\.\d+)?\b/g, color: element.codeColors.number },
+            { pattern: /[+\-*/%=<>!&|{}()[\];,.:]/g, color: element.codeColors.operator },
+            { pattern: /\b[a-zA-Z_$][a-zA-Z0-9_$]*(?=\()/g, color: element.codeColors.function },
+        ];
+
+        const spans: Array<{ start: number; end: number; color: string }> = [];
+
+        patterns.forEach(({ pattern, color }) => {
+            let match;
+            // Reset pattern lastIndex to avoid issues with global regex
+            pattern.lastIndex = 0;
+            while ((match = pattern.exec(text)) !== null) {
+                spans.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    color
+                });
+                // Prevent infinite loop with global regex
+                if (!pattern.global) break;
+            }
+        });
+
+        // Sort spans by start position and remove overlapping
+        spans.sort((a, b) => a.start - b.start);
+
+        // Split text into lines and track line positions
+        const lines = text.split('\n');
+        let currentTextIndex = 0;
+        const linePositions: Array<{ start: number; end: number }> = [];
+
+        lines.forEach((line) => {
+            linePositions.push({
+                start: currentTextIndex,
+                end: currentTextIndex + line.length
+            });
+            currentTextIndex += line.length + 1; // +1 for the newline character
+        });
+
+        // Draw each line with appropriate syntax highlighting
+        lines.forEach((line, lineIndex) => {
+            const lineY = y + (lineIndex * lineHeight);
+            const lineStart = linePositions[lineIndex].start;
+            const lineEnd = linePositions[lineIndex].end;
+
+            // Find spans that intersect with this line
+            const lineSpans = spans.filter(span =>
+                span.start < lineEnd && span.end > lineStart
+            ).map(span => ({
+                start: Math.max(span.start - lineStart, 0),
+                end: Math.min(span.end - lineStart, line.length),
+                color: span.color
+            })).filter(span => span.start < span.end);
+
+            if (lineSpans.length === 0) {
+                // No highlighting for this line
+                ctx.fillStyle = element.color;
+                if (element.stroke.enabled) {
+                    ctx.strokeStyle = element.stroke.color;
+                    ctx.lineWidth = element.stroke.width;
+                    ctx.strokeText(line, x, lineY);
+                }
+                ctx.fillText(line, x, lineY);
+                return;
+            }
+
+            // Draw line with syntax highlighting
+            let currentX = x;
+            let lastIndex = 0;
+
+            lineSpans.forEach((span) => {
+                // Draw text before this span (default color)
+                if (span.start > lastIndex) {
+                    const beforeText = line.slice(lastIndex, span.start);
+                    ctx.fillStyle = element.color;
+                    if (element.stroke.enabled) {
+                        ctx.strokeStyle = element.stroke.color;
+                        ctx.lineWidth = element.stroke.width;
+                        ctx.strokeText(beforeText, currentX, lineY);
+                    }
+                    ctx.fillText(beforeText, currentX, lineY);
+                    currentX += ctx.measureText(beforeText).width;
+                }
+
+                // Draw the highlighted span
+                const spanText = line.slice(span.start, span.end);
+                ctx.fillStyle = span.color;
+                if (element.stroke.enabled) {
+                    ctx.strokeStyle = element.stroke.color;
+                    ctx.lineWidth = element.stroke.width;
+                    ctx.strokeText(spanText, currentX, lineY);
+                }
+                ctx.fillText(spanText, currentX, lineY);
+                currentX += ctx.measureText(spanText).width;
+
+                lastIndex = span.end;
+            });
+
+            // Draw remaining text after the last span
+            if (lastIndex < line.length) {
+                const remainingText = line.slice(lastIndex);
+                ctx.fillStyle = element.color;
+                if (element.stroke.enabled) {
+                    ctx.strokeStyle = element.stroke.color;
+                    ctx.lineWidth = element.stroke.width;
+                    ctx.strokeText(remainingText, currentX, lineY);
+                }
+                ctx.fillText(remainingText, currentX, lineY);
+            }
+        });
     }
 
     async function exportPNG() {
