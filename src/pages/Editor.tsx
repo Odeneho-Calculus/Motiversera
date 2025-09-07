@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import { TextArea, Select, TextInput } from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import DraggableText from '../components/DraggableText';
+import DraggableQuote from '../components/DraggableQuote';
 import ShapeTools from '../components/ShapeTools';
 import CropTools from '../components/CropTools';
 import TransformTools from '../components/TransformTools';
@@ -17,6 +18,7 @@ import {
     clearEditorState,
     resetEditorDefaults,
     type TextElement,
+    type QuoteElement,
     type FilterSettings
 } from '../utils/localStorage';
 
@@ -77,7 +79,39 @@ export default function Editor() {
     // Advanced editor state
     const [activeTool, setActiveTool] = useState<Tool>('text');
     const [textElements, setTextElements] = useState<TextElement[]>(savedState.textElements || []);
+    const [quoteElement, setQuoteElement] = useState<QuoteElement | null>(
+        savedState.quoteElement ||
+        (savedState.quote ? {
+            // Migrate legacy quote to new format
+            id: `quote-${Date.now()}`,
+            text: savedState.quote,
+            x: 540,
+            y: 960,
+            fontSize: 32,
+            fontFamily: 'Monaco, Consolas, monospace',
+            color: '#ffffff',
+            fontWeight: 'bold',
+            textAlign: 'center' as const,
+            rotation: 0,
+            opacity: 1,
+            letterSpacing: 0,
+            lineHeight: 1.4,
+            shadow: { enabled: false, offsetX: 2, offsetY: 2, blur: 4, color: '#000000' },
+            stroke: { enabled: false, width: 1, color: '#000000' },
+            isCodeSnippet: true,
+            codeColors: {
+                keyword: '#ff6b6b',
+                string: '#4ecdc4',
+                comment: '#95a5a6',
+                number: '#f39c12',
+                operator: '#e74c3c',
+                variable: '#3498db',
+                function: '#9b59b6'
+            }
+        } : null)
+    );
     const [selectedElement, setSelectedElement] = useState<string | null>(null);
+    const [selectedQuote, setSelectedQuote] = useState<boolean>(false);
     const [filters, setFilters] = useState<FilterSettings>(savedState.filters || {
         brightness: 100,
         contrast: 100,
@@ -192,6 +226,66 @@ export default function Editor() {
         setSelectedElement(null);
     }, [selectedElement]);
 
+    // Add or remove quote element (only one allowed)
+    const toggleQuoteElement = useCallback(() => {
+        if (quoteElement) {
+            setQuoteElement(null);
+            setSelectedQuote(false);
+        } else {
+            const newQuote: QuoteElement = {
+                id: `quote-${Date.now()}`,
+                text: quote || 'while (struggling) { keepLearning(); } // Success is loading...',
+                x: width / 2,
+                y: height / 2,
+                fontSize: 32,
+                fontFamily: 'Monaco, Consolas, monospace',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                rotation: 0,
+                opacity: 1,
+                letterSpacing: 0,
+                lineHeight: 1.4,
+                shadow: {
+                    enabled: false,
+                    offsetX: 2,
+                    offsetY: 2,
+                    blur: 4,
+                    color: '#000000'
+                },
+                stroke: {
+                    enabled: false,
+                    width: 1,
+                    color: '#000000'
+                },
+                isCodeSnippet: true,
+                codeColors: {
+                    keyword: '#ff6b6b',
+                    string: '#4ecdc4',
+                    comment: '#95a5a6',
+                    number: '#f39c12',
+                    operator: '#e74c3c',
+                    variable: '#3498db',
+                    function: '#9b59b6'
+                }
+            };
+            setQuoteElement(newQuote);
+            setSelectedQuote(true);
+        }
+    }, [quoteElement, quote, width, height]);
+
+    // Update quote element
+    const updateQuoteElement = useCallback((updates: Partial<QuoteElement>) => {
+        if (!quoteElement) return;
+        setQuoteElement(prev => prev ? { ...prev, ...updates } : null);
+    }, [quoteElement]);
+
+    // Delete quote element
+    const deleteQuoteElement = useCallback(() => {
+        setQuoteElement(null);
+        setSelectedQuote(false);
+    }, []);
+
     // Pixabay search via proxy
     const doSearch = async () => {
         setLoading(true); setError(null);
@@ -228,6 +322,7 @@ export default function Editor() {
     useEffect(() => {
         saveEditorState({
             textElements,
+            quoteElement,
             filters,
             gradientColors,
             gradientAngle,
@@ -241,7 +336,7 @@ export default function Editor() {
             cropSettings,
             transformSettings
         });
-    }, [textElements, filters, gradientColors, gradientAngle, overlayColor, overlayOpacity, blendMode, quote, mediaType, selectedUrl, shapes, cropSettings, transformSettings]);
+    }, [textElements, quoteElement, filters, gradientColors, gradientAngle, overlayColor, overlayOpacity, blendMode, quote, mediaType, selectedUrl, shapes, cropSettings, transformSettings]);
 
     // Draw preview to canvas
     useEffect(() => {
@@ -326,23 +421,7 @@ export default function Editor() {
             ctx.fillRect(0, 0, width, height);
         }
 
-        // Draw main quote (legacy support)
-        if (quote) {
-            ctx.font = `bold ${ui.fontSize}px ${ui.fontFamily}`;
-            ctx.fillStyle = theme.text;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            const maxWidth = width * 0.8;
-            try {
-                await drawHighlightedMultiline(ctx, quote, maxWidth);
-            } catch (e) {
-                const lines = wrapText(ctx, quote, maxWidth);
-                const lineHeight = ui.lineHeight;
-                const startY = height / 2 - (lines.length - 1) * lineHeight / 2;
-                lines.forEach((l, i) => ctx.fillText(l, width / 2, startY + i * lineHeight));
-            }
-        }
+        // Legacy quote support removed - now handled by DraggableQuote component
 
         // Draw custom text elements
         for (const element of textElements) {
@@ -653,7 +732,9 @@ export default function Editor() {
                                 clearEditorState();
                                 // Reset all state to defaults
                                 setTextElements([]);
+                                setQuoteElement(null);
                                 setSelectedElement(null);
+                                setSelectedQuote(false);
                                 setFilters({
                                     brightness: 100, contrast: 100, saturation: 100, blur: 0,
                                     sepia: 0, hueRotate: 0, invert: 0, grayscale: 0, opacity: 100
@@ -689,20 +770,31 @@ export default function Editor() {
                         <div className={styles.toolPanel}>
                             <div className={styles.panelHeader}>
                                 <h3>Text Tools</h3>
-                                <Button
-                                    size="sm"
-                                    onClick={addTextElement}
-                                    disabled={textElements.length >= MAX_TEXT_ELEMENTS}
-                                    title={textElements.length >= MAX_TEXT_ELEMENTS
-                                        ? `Maximum ${MAX_TEXT_ELEMENTS} text elements allowed`
-                                        : `Add Text (${textElements.length}/${MAX_TEXT_ELEMENTS} used)`}
-                                >
-                                    Add Text ({textElements.length}/{MAX_TEXT_ELEMENTS})
-                                </Button>
+                                <div className={styles.buttonGroup}>
+                                    <Button
+                                        size="sm"
+                                        onClick={addTextElement}
+                                        disabled={textElements.length >= MAX_TEXT_ELEMENTS}
+                                        title={textElements.length >= MAX_TEXT_ELEMENTS
+                                            ? `Maximum ${MAX_TEXT_ELEMENTS} text elements allowed`
+                                            : `Add Text (${textElements.length}/${MAX_TEXT_ELEMENTS} used)`}
+                                    >
+                                        Add Text ({textElements.length}/{MAX_TEXT_ELEMENTS})
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant={quoteElement ? "primary" : "outline"}
+                                        onClick={toggleQuoteElement}
+                                        title={quoteElement ? "Remove Quote" : "Add Quote (Code Snippet)"}
+                                    >
+                                        {quoteElement ? "Remove Quote" : "Add Quote"}
+                                    </Button>
+                                </div>
                             </div>
 
+                            {/* Legacy quote input (for backward compatibility) */}
                             <Card>
-                                <label>Main Quote</label>
+                                <label>Legacy Quote (for canvas rendering)</label>
                                 <TextArea
                                     value={quote}
                                     onChange={(e) => setQuote(e.target.value)}
@@ -864,6 +956,114 @@ export default function Editor() {
                                                 />
                                             </div>
                                         )}
+                                    </div>
+                                </Card>
+                            )}
+
+                            {/* Quote Element Controls */}
+                            {selectedQuote && quoteElement && (
+                                <Card>
+                                    <div className={styles.panelHeader}>
+                                        <label>Selected Quote Element</label>
+                                        <Button size="sm" variant="outline" onClick={deleteQuoteElement}>
+                                            Delete
+                                        </Button>
+                                    </div>
+
+                                    <div className={styles.formGrid}>
+                                        <label>Text</label>
+                                        <TextArea
+                                            value={quoteElement.text}
+                                            onChange={(e) => updateQuoteElement({ text: e.target.value })}
+                                            rows={3}
+                                        />
+
+                                        <label>Font Size</label>
+                                        <TextInput
+                                            type="number"
+                                            value={quoteElement.fontSize}
+                                            onChange={(e) => updateQuoteElement({ fontSize: Number(e.target.value) })}
+                                        />
+
+                                        <label>Color</label>
+                                        <input
+                                            type="color"
+                                            value={quoteElement.color}
+                                            onChange={(e) => updateQuoteElement({ color: e.target.value })}
+                                            className={styles.colorInput}
+                                        />
+
+                                        <label>Code Snippet</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={quoteElement.isCodeSnippet}
+                                            onChange={(e) => updateQuoteElement({ isCodeSnippet: e.target.checked })}
+                                        />
+
+                                        {quoteElement.isCodeSnippet && (
+                                            <>
+                                                <label>Keyword Color</label>
+                                                <input
+                                                    type="color"
+                                                    value={quoteElement.codeColors.keyword}
+                                                    onChange={(e) => updateQuoteElement({
+                                                        codeColors: { ...quoteElement.codeColors, keyword: e.target.value }
+                                                    })}
+                                                    className={styles.colorInput}
+                                                />
+
+                                                <label>String Color</label>
+                                                <input
+                                                    type="color"
+                                                    value={quoteElement.codeColors.string}
+                                                    onChange={(e) => updateQuoteElement({
+                                                        codeColors: { ...quoteElement.codeColors, string: e.target.value }
+                                                    })}
+                                                    className={styles.colorInput}
+                                                />
+
+                                                <label>Comment Color</label>
+                                                <input
+                                                    type="color"
+                                                    value={quoteElement.codeColors.comment}
+                                                    onChange={(e) => updateQuoteElement({
+                                                        codeColors: { ...quoteElement.codeColors, comment: e.target.value }
+                                                    })}
+                                                    className={styles.colorInput}
+                                                />
+
+                                                <label>Number Color</label>
+                                                <input
+                                                    type="color"
+                                                    value={quoteElement.codeColors.number}
+                                                    onChange={(e) => updateQuoteElement({
+                                                        codeColors: { ...quoteElement.codeColors, number: e.target.value }
+                                                    })}
+                                                    className={styles.colorInput}
+                                                />
+
+                                                <label>Function Color</label>
+                                                <input
+                                                    type="color"
+                                                    value={quoteElement.codeColors.function}
+                                                    onChange={(e) => updateQuoteElement({
+                                                        codeColors: { ...quoteElement.codeColors, function: e.target.value }
+                                                    })}
+                                                    className={styles.colorInput}
+                                                />
+                                            </>
+                                        )}
+
+                                        <label>Opacity</label>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.1"
+                                            value={quoteElement.opacity}
+                                            onChange={(e) => updateQuoteElement({ opacity: Number(e.target.value) })}
+                                            className={styles.rangeInput}
+                                        />
                                     </div>
                                 </Card>
                             )}
@@ -1195,13 +1395,34 @@ export default function Editor() {
                                             el.id === id ? { ...el, ...updates } : el
                                         ));
                                     }}
-                                    onSelect={setSelectedElement}
+                                    onSelect={(id) => {
+                                        setSelectedElement(id);
+                                        setSelectedQuote(false);
+                                    }}
                                     onEdit={(id) => {
                                         // Focus on the selected element for editing
                                         setSelectedElement(id);
                                     }}
                                 />
                             ))}
+
+                            {/* Draggable Quote Element */}
+                            {quoteElement && (
+                                <DraggableQuote
+                                    key={quoteElement.id}
+                                    element={quoteElement}
+                                    isSelected={selectedQuote}
+                                    containerRef={canvasContainerRef}
+                                    onUpdate={updateQuoteElement}
+                                    onSelect={() => {
+                                        setSelectedQuote(true);
+                                        setSelectedElement(null);
+                                    }}
+                                    onEdit={() => {
+                                        setSelectedQuote(true);
+                                    }}
+                                />
+                            )}
                         </div>
 
                         <div className={styles.canvasInfo}>

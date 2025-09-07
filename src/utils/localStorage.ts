@@ -1,13 +1,14 @@
 // LocalStorage utilities for editor persistence
 export interface EditorState {
     textElements: TextElement[];
+    quoteElement: QuoteElement | null;
     filters: FilterSettings;
     gradientColors: string[];
     gradientAngle: number;
     overlayColor: string;
     overlayOpacity: number;
     blendMode: string;
-    quote: string;
+    quote: string; // Legacy support
     mediaType: string;
     selectedUrl: string | null;
     shapes?: ShapeElement[];
@@ -75,6 +76,19 @@ export interface TextElement {
     };
 }
 
+export interface QuoteElement extends TextElement {
+    isCodeSnippet: boolean;
+    codeColors: {
+        keyword: string;
+        string: string;
+        comment: string;
+        number: string;
+        operator: string;
+        variable: string;
+        function: string;
+    };
+}
+
 export interface FilterSettings {
     brightness: number;
     contrast: number;
@@ -120,6 +134,43 @@ export const clearEditorState = (): void => {
 export const resetEditorDefaults = (): EditorState => {
     return {
         textElements: [],
+        quoteElement: {
+            id: `quote-${Date.now()}`,
+            text: 'while (struggling) { keepLearning(); } // Success is loading...',
+            x: 540,
+            y: 960,
+            fontSize: 32,
+            fontFamily: 'Monaco, Consolas, monospace',
+            color: '#ffffff',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            rotation: 0,
+            opacity: 1,
+            letterSpacing: 0,
+            lineHeight: 1.4,
+            shadow: {
+                enabled: false,
+                offsetX: 2,
+                offsetY: 2,
+                blur: 4,
+                color: '#000000'
+            },
+            stroke: {
+                enabled: false,
+                width: 1,
+                color: '#000000'
+            },
+            isCodeSnippet: true,
+            codeColors: {
+                keyword: '#ff6b6b',
+                string: '#4ecdc4',
+                comment: '#95a5a6',
+                number: '#f39c12',
+                operator: '#e74c3c',
+                variable: '#3498db',
+                function: '#9b59b6'
+            }
+        },
         filters: {
             brightness: 100,
             contrast: 100,
