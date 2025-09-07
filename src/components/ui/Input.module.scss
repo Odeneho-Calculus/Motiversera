@@ -1,0 +1,16 @@
+@use '../../styles/variables' as *;
+
+.base {
+    background: #0f1725;
+    border: 1px solid $color-border;
+    color: $color-text;
+    border-radius: $radius-1;
+    padding: 10px 12px;
+    width: 100%;
+}
+
+.textarea {
+    min-height: 120px;
+}
+
+.select {}

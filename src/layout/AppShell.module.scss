@@ -1,0 +1,30 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.shell {
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+}
+
+.header {
+    @include card(12px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.content {
+    padding: 16px;
+}

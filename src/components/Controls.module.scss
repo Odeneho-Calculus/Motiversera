@@ -1,0 +1,22 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.root {
+    @include grid-gap(12px);
+}
+
+.row {
+    @include grid-gap(8px);
+}
+
+.twoCols {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr 120px;
+    gap: 8px;
+    align-items: center;
+}
+
+.meta {
+    color: $color-muted;
+    font-size: 12px;
+}

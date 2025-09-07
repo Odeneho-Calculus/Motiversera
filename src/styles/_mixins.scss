@@ -1,0 +1,20 @@
+@use './variables' as *;
+
+@mixin card($padding: 16px) {
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $radius-2;
+    padding: $padding;
+    box-shadow: $shadow-1;
+}
+
+@mixin flex-center($gap: 8px) {
+    display: flex;
+    align-items: center;
+    gap: $gap;
+}
+
+@mixin grid-gap($gap: 12px) {
+    display: grid;
+    gap: $gap;
+}
