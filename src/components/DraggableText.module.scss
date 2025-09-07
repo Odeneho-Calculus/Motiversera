@@ -1,4 +1,5 @@
 @use '../styles/variables' as *;
+@use 'sass:color';
 
 .draggableText {
     position: absolute;
@@ -22,37 +23,52 @@
     }
 }
 
-.selectionIndicator {
+.resizeHandles {
     position: absolute;
     inset: -8px;
     pointer-events: none;
 
-    .corner {
+    .resizeHandle {
         position: absolute;
-        width: 6px;
-        height: 6px;
+        width: 8px;
+        height: 8px;
         background: $color-primary;
-        border: 1px solid white;
-        border-radius: 1px;
+        border: 2px solid white;
+        border-radius: 2px;
+        pointer-events: all;
+        z-index: 1002;
 
-        &:nth-child(1) {
+        &:hover {
+            background: color.adjust($color-primary, $lightness: -10%);
+            transform: scale(1.2);
+        }
+
+        &.nw {
             top: 0;
             left: 0;
+            cursor: nw-resize;
+            transform: translate(-50%, -50%);
         }
 
-        &:nth-child(2) {
+        &.ne {
             top: 0;
             right: 0;
+            cursor: ne-resize;
+            transform: translate(50%, -50%);
         }
 
-        &:nth-child(3) {
+        &.sw {
             bottom: 0;
             left: 0;
+            cursor: sw-resize;
+            transform: translate(-50%, 50%);
         }
 
-        &:nth-child(4) {
+        &.se {
             bottom: 0;
             right: 0;
+            cursor: se-resize;
+            transform: translate(50%, 50%);
         }
     }
 }

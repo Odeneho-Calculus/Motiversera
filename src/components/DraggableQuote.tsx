@@ -22,6 +22,7 @@ export default function DraggableQuote({
     const textRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
 
     // Use refs to avoid stale closure issues
     const dragStateRef = useRef({
@@ -29,7 +30,9 @@ export default function DraggableQuote({
         startX: 0,
         startY: 0,
         elementX: 0,
-        elementY: 0
+        elementY: 0,
+        resizeHandle: null as string | null,
+        startFontSize: 0
     });
 
     // Store current handlers in refs to avoid stale closures
@@ -66,11 +69,24 @@ export default function DraggableQuote({
         const scaleX = 1080 / rect.width;
         const scaleY = 1920 / rect.height;
 
-        const newX = Math.max(0, Math.min(1080, dragState.elementX + deltaX * scaleX));
-        const newY = Math.max(0, Math.min(1920, dragState.elementY + deltaY * scaleY));
+        if (dragState.resizeHandle) {
+            // Handle resize (for quote, we resize the font)
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const direction = deltaX > 0 || deltaY > 0 ? 1 : -1;
+            const scaleFactor = 1 + (direction * distance * 0.002);
 
-        console.log('🔄 Dragging quote element:', currentElement.id, { newX, newY, deltaX, deltaY, scaleX, scaleY });
-        currentOnUpdate({ x: newX, y: newY });
+            const newFontSize = Math.max(8, Math.min(200, dragState.startFontSize * scaleFactor));
+
+            console.log('🔄 Resizing quote:', currentElement.id, { newFontSize, distance, direction });
+            currentOnUpdate({ fontSize: newFontSize });
+        } else {
+            // Handle drag
+            const newX = Math.max(0, Math.min(1080, dragState.elementX + deltaX * scaleX));
+            const newY = Math.max(0, Math.min(1920, dragState.elementY + deltaY * scaleY));
+
+            console.log('🔄 Dragging quote element:', currentElement.id, { newX, newY, deltaX, deltaY, scaleX, scaleY });
+            currentOnUpdate({ x: newX, y: newY });
+        }
     };
 
     // Mouse up handler
@@ -80,7 +96,9 @@ export default function DraggableQuote({
 
         // Reset drag state
         dragState.active = false;
+        dragState.resizeHandle = null;
         setIsDragging(false);
+        setIsResizing(false);
 
         // Clean up event listeners
         document.removeEventListener('mousemove', handleMouseMove);
@@ -88,12 +106,15 @@ export default function DraggableQuote({
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        console.log('🟡 MouseDown on quote element:', element.id, 'isSelected:', isSelected, 'isEditing:', isEditing);
+        const target = e.target as HTMLElement;
+        const resizeHandle = target.getAttribute('data-resize-handle');
+
+        console.log('🟡 MouseDown on quote element:', element.id, 'isSelected:', isSelected, 'isEditing:', isEditing, 'resizeHandle:', resizeHandle);
         e.preventDefault();
         e.stopPropagation();
 
-        // Don't start drag if in editing mode
-        if (isEditing) {
+        // Don't start drag if in editing mode (unless it's a resize handle)
+        if (isEditing && !resizeHandle) {
             console.log('⏸️ Quote in edit mode, skipping drag');
             return;
         }
@@ -113,16 +134,22 @@ export default function DraggableQuote({
         console.log('📏 Quote container rect:', rect);
 
         // Initialize drag state
-        console.log('🟢 Starting drag quote element:', element.id);
+        console.log('🟢 Starting drag/resize quote element:', element.id);
         dragStateRef.current = {
             active: true,
             startX: e.clientX,
             startY: e.clientY,
             elementX: element.x,
-            elementY: element.y
+            elementY: element.y,
+            resizeHandle,
+            startFontSize: element.fontSize
         };
 
-        setIsDragging(true);
+        if (resizeHandle) {
+            setIsResizing(true);
+        } else {
+            setIsDragging(true);
+        }
 
         // Add event listeners to document
         document.addEventListener('mousemove', handleMouseMove);
@@ -240,7 +267,7 @@ export default function DraggableQuote({
         opacity: element.opacity,
         letterSpacing: `${element.letterSpacing}px`,
         lineHeight: element.lineHeight,
-        cursor: isDragging ? 'grabbing' : (isEditing ? 'text' : 'grab'),
+        cursor: isDragging ? 'grabbing' : (isResizing ? 'nw-resize' : (isEditing ? 'text' : 'grab')),
         userSelect: isEditing ? 'text' : 'none',
         zIndex: isSelected ? 1000 : 100,
         whiteSpace: 'pre-wrap',
@@ -268,12 +295,29 @@ export default function DraggableQuote({
             onMouseDown={handleMouseDown}
             onDoubleClick={handleDoubleClick}
         >
-            {isSelected && (
-                <div className={styles.selectionIndicator}>
-                    <div className={styles.corner} />
-                    <div className={styles.corner} />
-                    <div className={styles.corner} />
-                    <div className={styles.corner} />
+            {/* Resize handles - only show when selected and not editing */}
+            {isSelected && !isEditing && (
+                <div className={styles.resizeHandles}>
+                    <div
+                        className={`${styles.resizeHandle} ${styles.nw}`}
+                        data-resize-handle="nw"
+                        onMouseDown={handleMouseDown}
+                    />
+                    <div
+                        className={`${styles.resizeHandle} ${styles.ne}`}
+                        data-resize-handle="ne"
+                        onMouseDown={handleMouseDown}
+                    />
+                    <div
+                        className={`${styles.resizeHandle} ${styles.sw}`}
+                        data-resize-handle="sw"
+                        onMouseDown={handleMouseDown}
+                    />
+                    <div
+                        className={`${styles.resizeHandle} ${styles.se}`}
+                        data-resize-handle="se"
+                        onMouseDown={handleMouseDown}
+                    />
                 </div>
             )}
 

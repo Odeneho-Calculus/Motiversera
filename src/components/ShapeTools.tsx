@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import { TextInput } from './ui/Input';
@@ -36,8 +36,21 @@ export default function ShapeTools({
     onSelectShape
 }: ShapeToolsProps) {
     const [shapeType, setShapeType] = useState<ShapeElement['type']>('rectangle');
+    const lastAddTimeRef = useRef(0);
 
-    const addShape = () => {
+    const addShape = useCallback(() => {
+        // Prevent double-calls from React.StrictMode in development
+        const now = Date.now();
+        if (now - lastAddTimeRef.current < 100) {
+            return;
+        }
+        lastAddTimeRef.current = now;
+
+        if (shapes.length >= 5) {
+            alert('Maximum of 5 shapes allowed');
+            return;
+        }
+
         const newShape: Omit<ShapeElement, 'id'> = {
             type: shapeType,
             x: 540,
@@ -51,7 +64,7 @@ export default function ShapeTools({
             rotation: 0
         };
         onAddShape(newShape);
-    };
+    }, [shapes.length, shapeType, onAddShape]);
 
     const selectedShapeData = shapes.find(shape => shape.id === selectedShape);
 
@@ -59,8 +72,15 @@ export default function ShapeTools({
         <div className={styles.shapeTools}>
             <div className={styles.panelHeader}>
                 <h3>Shape Tools</h3>
-                <Button size="sm" onClick={addShape}>
-                    Add Shape
+                <Button
+                    size="sm"
+                    onClick={addShape}
+                    disabled={shapes.length >= 5}
+                    title={shapes.length >= 5
+                        ? "Maximum 5 shapes allowed"
+                        : `Add Shape (${shapes.length}/5 used)`}
+                >
+                    Add Shape ({shapes.length}/5)
                 </Button>
             </div>
 

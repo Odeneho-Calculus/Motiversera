@@ -9,6 +9,7 @@ import { TextArea, Select, TextInput } from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import DraggableText from '../components/DraggableText';
 import DraggableQuote from '../components/DraggableQuote';
+import DraggableShape from '../components/DraggableShape';
 import ShapeTools from '../components/ShapeTools';
 import CropTools from '../components/CropTools';
 import TransformTools from '../components/TransformTools';
@@ -29,6 +30,7 @@ type Tool = 'text' | 'shape' | 'filter' | 'overlay' | 'crop' | 'transform';
 type BlendMode = 'normal' | 'multiply' | 'screen' | 'overlay' | 'soft-light' | 'hard-light' | 'color-dodge' | 'color-burn';
 
 const MAX_TEXT_ELEMENTS = 5;
+const MAX_SHAPE_ELEMENTS = 5;
 
 interface ShapeElement {
     id: string;
@@ -428,10 +430,7 @@ export default function Editor() {
             drawTextElement(ctx, element);
         }
 
-        // Draw shapes
-        for (const shape of shapes) {
-            drawShapeElement(ctx, shape);
-        }
+        // Shapes are now handled by DraggableShape components
     }
 
     // Draw individual text element
@@ -654,20 +653,159 @@ export default function Editor() {
     }
 
     // Export functions
-    function exportPNG() {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const url = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = url; a.download = 'motiversera.png'; a.click();
+    async function createExportCanvas(): Promise<HTMLCanvasElement> {
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = width;
+        exportCanvas.height = height;
+        const ctx = exportCanvas.getContext('2d')!;
+
+        // Draw background (same as original canvas drawing)
+        if (mediaType === 'image' && selectedUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    // Apply filters
+                    ctx.filter = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturation}%) blur(${filters.blur}px) sepia(${filters.sepia}%) hue-rotate(${filters.hueRotate}deg) invert(${filters.invert}%) grayscale(${filters.grayscale}%) opacity(${filters.opacity}%)`;
+
+                    ctx.drawImage(img, 0, 0, width, height);
+                    ctx.filter = 'none';
+
+                    drawOverlayElements(ctx);
+                    resolve(exportCanvas);
+                };
+                img.src = selectedUrl;
+            });
+        } else if (mediaType === 'video' && selectedUrl && videoReady) {
+            const video = document.querySelector('video') as HTMLVideoElement;
+            if (video) {
+                // Apply filters
+                ctx.filter = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturation}%) blur(${filters.blur}px) sepia(${filters.sepia}%) hue-rotate(${filters.hueRotate}deg) invert(${filters.invert}%) grayscale(${filters.grayscale}%) opacity(${filters.opacity}%)`;
+
+                ctx.drawImage(video, 0, 0, width, height);
+                ctx.filter = 'none';
+            }
+            drawOverlayElements(ctx);
+            return exportCanvas;
+        } else {
+            // Draw gradient background
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+
+            if (ui.bgMode === 'custom-gradient' && gradientColors.length >= 2) {
+                const colorStops = gradientColors.map((color, index) =>
+                    `${color} ${(index / (gradientColors.length - 1)) * 100}%`
+                ).join(', ');
+
+                gradientColors.forEach((color, index) => {
+                    gradient.addColorStop(index / (gradientColors.length - 1), color);
+                });
+            } else {
+                const t = getTheme(ui.themeId);
+                gradient.addColorStop(0, t.bgGradient[0]);
+                gradient.addColorStop(1, t.bgGradient[1]);
+            }
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            drawOverlayElements(ctx);
+            return exportCanvas;
+        }
     }
 
-    function exportJPEG() {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const url = canvas.toDataURL('image/jpeg', 0.95);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'motiversera.jpg'; a.click();
+    function drawOverlayElements(ctx: CanvasRenderingContext2D) {
+        // Draw veil if enabled
+        if (ui.showVeil) {
+            const theme = getTheme(ui.themeId);
+            ctx.fillStyle = hexToRgba(theme.veil, ui.veilOpacity ?? theme.veilOpacity);
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        // Draw text elements
+        for (const element of textElements) {
+            drawTextElement(ctx, element);
+        }
+
+        // Draw quote element
+        if (quoteElement) {
+            drawQuoteElement(ctx, quoteElement);
+        }
+
+        // Draw shapes
+        for (const shape of shapes) {
+            drawShapeElement(ctx, shape);
+        }
+    }
+
+    function drawQuoteElement(ctx: CanvasRenderingContext2D, element: QuoteElement) {
+        ctx.save();
+
+        // Set text properties
+        ctx.font = `${element.fontWeight} ${element.fontSize}px ${element.fontFamily}`;
+        ctx.fillStyle = element.color;
+        ctx.textAlign = element.textAlign;
+        ctx.textBaseline = 'top';
+        ctx.globalAlpha = element.opacity;
+
+        // Apply rotation if needed
+        if (element.rotation !== 0) {
+            ctx.translate(element.x, element.y);
+            ctx.rotate(element.rotation * Math.PI / 180);
+            ctx.translate(-element.x, -element.y);
+        }
+
+        // Apply shadow if enabled
+        if (element.shadow.enabled) {
+            ctx.shadowOffsetX = element.shadow.offsetX;
+            ctx.shadowOffsetY = element.shadow.offsetY;
+            ctx.shadowBlur = element.shadow.blur;
+            ctx.shadowColor = element.shadow.color;
+        }
+
+        // Apply stroke if enabled
+        if (element.stroke.enabled) {
+            ctx.strokeStyle = element.stroke.color;
+            ctx.lineWidth = element.stroke.width;
+        }
+
+        // Break text into lines and draw
+        const lines = element.text.split('\n');
+        const lineHeight = element.fontSize * element.lineHeight;
+
+        lines.forEach((line, index) => {
+            const y = element.y + (index * lineHeight);
+
+            if (element.stroke.enabled) {
+                ctx.strokeText(line, element.x, y);
+            }
+            ctx.fillText(line, element.x, y);
+        });
+
+        ctx.restore();
+    }
+
+    async function exportPNG() {
+        try {
+            const exportCanvas = await createExportCanvas();
+            const url = exportCanvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = url; a.download = 'motiversera.png'; a.click();
+        } catch (error) {
+            console.error('Error exporting PNG:', error);
+            alert('Error exporting image. Please try again.');
+        }
+    }
+
+    async function exportJPEG() {
+        try {
+            const exportCanvas = await createExportCanvas();
+            const url = exportCanvas.toDataURL('image/jpeg', 0.95);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'motiversera.jpg'; a.click();
+        } catch (error) {
+            console.error('Error exporting JPEG:', error);
+            alert('Error exporting image. Please try again.');
+        }
     }
 
     function onPick(hit: any) {
@@ -1296,6 +1434,7 @@ export default function Editor() {
                             <ShapeTools
                                 shapes={shapes}
                                 onAddShape={(shape) => {
+                                    if (shapes.length >= MAX_SHAPE_ELEMENTS) return;
                                     const newShape = { ...shape, id: Date.now().toString() };
                                     setShapes(prev => [...prev, newShape]);
                                     setSelectedShape(newShape.id);
@@ -1366,7 +1505,14 @@ export default function Editor() {
                             ref={canvasContainerRef}
                             className={styles.canvasShell}
                             style={{ background: gradientCss }}
-                            onClick={() => setSelectedElement(null)}
+                            onClick={(e) => {
+                                // Only deselect if clicking on the container itself (not child elements)
+                                if (e.target === e.currentTarget) {
+                                    setSelectedElement(null);
+                                    setSelectedQuote(false);
+                                    setSelectedShape(null);
+                                }
+                            }}
                         >
                             {mediaType === 'video' && selectedUrl && (
                                 <video
@@ -1423,6 +1569,26 @@ export default function Editor() {
                                     }}
                                 />
                             )}
+
+                            {/* Draggable Shape Elements */}
+                            {shapes.map(shape => (
+                                <DraggableShape
+                                    key={shape.id}
+                                    element={shape}
+                                    isSelected={selectedShape === shape.id}
+                                    containerRef={canvasContainerRef}
+                                    onUpdate={(id, updates) => {
+                                        setShapes(prev => prev.map(s =>
+                                            s.id === id ? { ...s, ...updates } : s
+                                        ));
+                                    }}
+                                    onSelect={(id) => {
+                                        setSelectedShape(id);
+                                        setSelectedElement(null);
+                                        setSelectedQuote(false);
+                                    }}
+                                />
+                            ))}
                         </div>
 
                         <div className={styles.canvasInfo}>
