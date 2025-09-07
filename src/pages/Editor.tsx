@@ -82,13 +82,20 @@ export default function Editor() {
     const [activeTool, setActiveTool] = useState<Tool>('text');
     const [textElements, setTextElements] = useState<TextElement[]>(savedState.textElements || []);
     const [quoteElement, setQuoteElement] = useState<QuoteElement | null>(
-        savedState.quoteElement ||
+        (savedState.quoteElement && {
+            ...savedState.quoteElement,
+            // Ensure width and height exist for existing elements
+            width: savedState.quoteElement.width || 400,
+            height: savedState.quoteElement.height || 100
+        }) ||
         (savedState.quote ? {
             // Migrate legacy quote to new format
             id: `quote-${Date.now()}`,
             text: savedState.quote,
             x: 540,
             y: 960,
+            width: 400,
+            height: 100,
             fontSize: 32,
             fontFamily: 'Monaco, Consolas, monospace',
             color: '#ffffff',
@@ -151,6 +158,14 @@ export default function Editor() {
         flipV: false
     });
     const [isDragging, setIsDragging] = useState(false);
+
+    // Resizable panels state
+    const [leftPanelWidth, setLeftPanelWidth] = useState(savedState.leftPanelWidth || 320);
+    const [rightPanelWidth, setRightPanelWidth] = useState(savedState.rightPanelWidth || 300);
+    const [isResizingLeft, setIsResizingLeft] = useState(false);
+    const [isResizingRight, setIsResizingRight] = useState(false);
+    const [resizeStartX, setResizeStartX] = useState(0);
+    const [resizeStartWidth, setResizeStartWidth] = useState(0);
 
     // Canvas refs
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -239,6 +254,8 @@ export default function Editor() {
                 text: quote || 'while (struggling) { keepLearning(); } // Success is loading...',
                 x: width / 2,
                 y: height / 2,
+                width: 400,
+                height: 100,
                 fontSize: 32,
                 fontFamily: 'Monaco, Consolas, monospace',
                 color: '#ffffff',
@@ -288,6 +305,55 @@ export default function Editor() {
         setSelectedQuote(false);
     }, []);
 
+    // Panel resize handlers
+    const handleLeftResizeStart = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsResizingLeft(true);
+        setResizeStartX(e.clientX);
+        setResizeStartWidth(leftPanelWidth);
+    }, [leftPanelWidth]);
+
+    const handleRightResizeStart = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsResizingRight(true);
+        setResizeStartX(e.clientX);
+        setResizeStartWidth(rightPanelWidth);
+    }, [rightPanelWidth]);
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (isResizingLeft) {
+            const deltaX = e.clientX - resizeStartX;
+            const newWidth = Math.max(280, Math.min(600, resizeStartWidth + deltaX));
+            setLeftPanelWidth(newWidth);
+        } else if (isResizingRight) {
+            const deltaX = resizeStartX - e.clientX;
+            const newWidth = Math.max(260, Math.min(600, resizeStartWidth + deltaX));
+            setRightPanelWidth(newWidth);
+        }
+    }, [isResizingLeft, isResizingRight, resizeStartX, resizeStartWidth]);
+
+    const handleMouseUp = useCallback(() => {
+        setIsResizingLeft(false);
+        setIsResizingRight(false);
+    }, []);
+
+    // Add global mouse events for resizing
+    useEffect(() => {
+        if (isResizingLeft || isResizingRight) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+
+            return () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            };
+        }
+    }, [isResizingLeft, isResizingRight, handleMouseMove, handleMouseUp]);
+
     // Pixabay search via proxy
     const doSearch = async () => {
         setLoading(true); setError(null);
@@ -336,9 +402,11 @@ export default function Editor() {
             selectedUrl,
             shapes,
             cropSettings,
-            transformSettings
+            transformSettings,
+            leftPanelWidth,
+            rightPanelWidth
         });
-    }, [textElements, quoteElement, filters, gradientColors, gradientAngle, overlayColor, overlayOpacity, blendMode, quote, mediaType, selectedUrl, shapes, cropSettings, transformSettings]);
+    }, [textElements, quoteElement, filters, gradientColors, gradientAngle, overlayColor, overlayOpacity, blendMode, quote, mediaType, selectedUrl, shapes, cropSettings, transformSettings, leftPanelWidth, rightPanelWidth]);
 
     // Draw preview to canvas
     useEffect(() => {
@@ -425,9 +493,11 @@ export default function Editor() {
 
         // Legacy quote support removed - now handled by DraggableQuote component
 
-        // Draw custom text elements
+        // Draw custom text elements (skip selected ones as they're handled by DraggableText)
         for (const element of textElements) {
-            drawTextElement(ctx, element);
+            if (selectedElement !== element.id) {
+                drawTextElement(ctx, element);
+            }
         }
 
         // Shapes are now handled by DraggableShape components
@@ -721,9 +791,11 @@ export default function Editor() {
             ctx.fillRect(0, 0, width, height);
         }
 
-        // Draw text elements
+        // Draw text elements (skip selected ones as they're handled by DraggableText)
         for (const element of textElements) {
-            drawTextElement(ctx, element);
+            if (selectedElement !== element.id) {
+                drawTextElement(ctx, element);
+            }
         }
 
         // Draw quote element
@@ -1012,6 +1084,8 @@ export default function Editor() {
                                 setSelectedUrl(null);
                                 setShapes([]);
                                 setSelectedShape(null);
+                                setLeftPanelWidth(320);
+                                setRightPanelWidth(300);
                             }
                         }}
                     >
@@ -1026,9 +1100,19 @@ export default function Editor() {
                 </div>
             </header>
 
-            <div className={styles.editorLayout}>
+            <div
+                className={styles.editorLayout}
+                style={{
+                    gridTemplateColumns: `${leftPanelWidth}px 1fr ${rightPanelWidth}px`
+                }}
+            >
                 {/* Left Panel */}
                 <aside className={styles.leftPanel}>
+                    <div
+                        className={styles.resizeHandle}
+                        onMouseDown={handleLeftResizeStart}
+                        style={{ right: 0 }}
+                    />
                     {activeTool === 'text' && (
                         <div className={styles.toolPanel}>
                             <div className={styles.panelHeader}>
@@ -1055,16 +1139,7 @@ export default function Editor() {
                                 </div>
                             </div>
 
-                            {/* Legacy quote input (for backward compatibility) */}
-                            <Card>
-                                <label>Legacy Quote (for canvas rendering)</label>
-                                <TextArea
-                                    value={quote}
-                                    onChange={(e) => setQuote(e.target.value)}
-                                    rows={4}
-                                    placeholder="Enter your motivational quote or code snippet..."
-                                />
-                            </Card>
+
 
                             {selectedElementData && (
                                 <Card>
@@ -1724,6 +1799,11 @@ export default function Editor() {
 
                 {/* Right Panel */}
                 <aside className={styles.rightPanel}>
+                    <div
+                        className={styles.resizeHandle}
+                        onMouseDown={handleRightResizeStart}
+                        style={{ left: 0 }}
+                    />
                     <div className={styles.panelHeader}>
                         <h3>Media Library</h3>
                     </div>

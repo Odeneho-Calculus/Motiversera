@@ -32,7 +32,9 @@ export default function DraggableQuote({
         elementX: 0,
         elementY: 0,
         resizeHandle: null as string | null,
-        startFontSize: 0
+        startFontSize: 0,
+        startWidth: 0,
+        startHeight: 0
     });
 
     // Store current handlers in refs to avoid stale closures
@@ -70,21 +72,61 @@ export default function DraggableQuote({
         const scaleY = 1920 / rect.height;
 
         if (dragState.resizeHandle) {
-            // Handle resize (for quote, we resize the font)
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            const direction = deltaX > 0 || deltaY > 0 ? 1 : -1;
-            const scaleFactor = 1 + (direction * distance * 0.002);
+            // Handle resize (similar to shapes)
+            console.log('🔧 RESIZE MODE - Handle:', dragState.resizeHandle);
+            const scaledDeltaX = deltaX * scaleX;
+            const scaledDeltaY = deltaY * scaleY;
 
-            const newFontSize = Math.max(8, Math.min(200, dragState.startFontSize * scaleFactor));
+            let newWidth = dragState.startWidth;
+            let newHeight = dragState.startHeight;
+            let newX = currentElement.x;
+            let newY = currentElement.y;
 
-            console.log('🔄 Resizing quote:', currentElement.id, { newFontSize, distance, direction });
-            currentOnUpdate({ fontSize: newFontSize });
+            switch (dragState.resizeHandle) {
+                case 'nw': // Northwest corner
+                    newWidth = Math.max(50, dragState.startWidth - scaledDeltaX);
+                    newHeight = Math.max(30, dragState.startHeight - scaledDeltaY);
+                    newX = dragState.elementX + (dragState.startWidth - newWidth) / 2;
+                    newY = dragState.elementY + (dragState.startHeight - newHeight) / 2;
+                    break;
+                case 'ne': // Northeast corner
+                    newWidth = Math.max(50, dragState.startWidth + scaledDeltaX);
+                    newHeight = Math.max(30, dragState.startHeight - scaledDeltaY);
+                    newX = dragState.elementX - (newWidth - dragState.startWidth) / 2;
+                    newY = dragState.elementY + (dragState.startHeight - newHeight) / 2;
+                    break;
+                case 'sw': // Southwest corner
+                    newWidth = Math.max(50, dragState.startWidth - scaledDeltaX);
+                    newHeight = Math.max(30, dragState.startHeight + scaledDeltaY);
+                    newX = dragState.elementX + (dragState.startWidth - newWidth) / 2;
+                    newY = dragState.elementY - (newHeight - dragState.startHeight) / 2;
+                    break;
+                case 'se': // Southeast corner
+                    newWidth = Math.max(50, dragState.startWidth + scaledDeltaX);
+                    newHeight = Math.max(30, dragState.startHeight + scaledDeltaY);
+                    newX = dragState.elementX - (newWidth - dragState.startWidth) / 2;
+                    newY = dragState.elementY - (newHeight - dragState.startHeight) / 2;
+                    break;
+            }
+
+            // Also scale the font size proportionally
+            const scaleRatio = Math.min(newWidth / dragState.startWidth, newHeight / dragState.startHeight);
+            const newFontSize = Math.max(8, Math.min(200, dragState.startFontSize * scaleRatio));
+
+            console.log('🔄 Resizing quote:', currentElement.id, { newWidth, newHeight, newX, newY, newFontSize });
+            currentOnUpdate({ width: newWidth, height: newHeight, x: newX, y: newY, fontSize: newFontSize });
         } else {
-            // Handle drag
-            const newX = Math.max(0, Math.min(1080, dragState.elementX + deltaX * scaleX));
-            const newY = Math.max(0, Math.min(1920, dragState.elementY + deltaY * scaleY));
+            // Handle drag - convert screen movement to canvas coordinates properly
+            console.log('🚚 DRAG MODE - Moving only, no resize');
 
-            console.log('🔄 Dragging quote element:', currentElement.id, { newX, newY, deltaX, deltaY, scaleX, scaleY });
+            // Calculate canvas coordinate changes from screen pixel changes
+            const canvasX = dragState.elementX + (deltaX * (1080 / rect.width));
+            const canvasY = dragState.elementY + (deltaY * (1920 / rect.height));
+
+            const newX = Math.max(0, Math.min(1080, canvasX));
+            const newY = Math.max(0, Math.min(1920, canvasY));
+
+            console.log('🔄 Dragging quote element:', currentElement.id, { newX, newY, deltaX, deltaY, canvasX, canvasY });
             currentOnUpdate({ x: newX, y: newY });
         }
     };
@@ -109,7 +151,10 @@ export default function DraggableQuote({
         const target = e.target as HTMLElement;
         const resizeHandle = target.getAttribute('data-resize-handle');
 
-        console.log('🟡 MouseDown on quote element:', element.id, 'isSelected:', isSelected, 'isEditing:', isEditing, 'resizeHandle:', resizeHandle);
+        console.log('🟡 MouseDown on quote element:', element.id);
+        console.log('  - Target element:', target.tagName, target.className);
+        console.log('  - Resize handle detected:', resizeHandle);
+        console.log('  - isSelected:', isSelected, 'isEditing:', isEditing);
         e.preventDefault();
         e.stopPropagation();
 
@@ -142,7 +187,9 @@ export default function DraggableQuote({
             elementX: element.x,
             elementY: element.y,
             resizeHandle,
-            startFontSize: element.fontSize
+            startFontSize: element.fontSize,
+            startWidth: element.width || 400,
+            startHeight: element.height || 100
         };
 
         if (resizeHandle) {
@@ -259,6 +306,8 @@ export default function DraggableQuote({
         left: `${element.x * scaleX}px`,
         top: `${element.y * scaleY}px`,
         transform: `translate(-50%, -50%) rotate(${element.rotation}deg)`,
+        maxWidth: `${(element.width || 400) * scaleX}px`,
+        minWidth: `${Math.min(200, (element.width || 400)) * scaleX}px`,
         fontSize: `${element.fontSize * Math.min(scaleX, scaleY)}px`,
         fontFamily: element.fontFamily,
         color: element.color,
@@ -271,6 +320,8 @@ export default function DraggableQuote({
         userSelect: isEditing ? 'text' : 'none',
         zIndex: isSelected ? 1000 : 100,
         whiteSpace: 'pre-wrap',
+        wordWrap: 'break-word',
+        overflowWrap: 'break-word',
         ...(element.shadow.enabled && {
             textShadow: `${element.shadow.offsetX}px ${element.shadow.offsetY}px ${element.shadow.blur}px ${element.shadow.color}`
         }),
@@ -339,15 +390,23 @@ export default function DraggableQuote({
                         borderRadius: '4px',
                         padding: '8px',
                         resize: 'none',
-                        minWidth: '300px',
-                        minHeight: '100px',
+                        width: `${Math.min(400, (containerRect?.width || 400) * 0.6)}px`,
+                        minWidth: '200px',
+                        height: `${Math.max(120, (element.height || 150) * Math.min(scaleX, scaleY))}px`,
+                        minHeight: '120px',
+                        maxHeight: '400px',
+                        boxSizing: 'border-box',
+                        position: 'relative',
+                        transform: 'none',
+                        left: 'auto',
+                        top: 'auto',
                     }}
                     autoFocus
                 />
             ) : (
-                <div>
+                <>
                     {renderHighlightedText(element.text)}
-                </div>
+                </>
             )}
         </div>
     );

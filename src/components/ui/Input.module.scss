@@ -7,10 +7,41 @@
     border-radius: $radius-1;
     padding: 10px 12px;
     width: 100%;
+    min-width: 0; // Prevent overflow in narrow containers
+    box-sizing: border-box;
+    font-size: 12px;
+
+    // Responsive adjustments for narrow containers
+    @container (max-width: 350px) {
+        padding: 8px 10px;
+        font-size: 11px;
+    }
+
+    @container (max-width: 280px) {
+        padding: 6px 8px;
+        font-size: 10px;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: $color-primary;
+        box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+    }
 }
 
 .textarea {
     min-height: 120px;
+    resize: vertical;
+
+    @container (max-width: 350px) {
+        min-height: 80px;
+    }
+
+    @container (max-width: 280px) {
+        min-height: 60px;
+    }
 }
 
-.select {}
+.select {
+    cursor: pointer;
+}

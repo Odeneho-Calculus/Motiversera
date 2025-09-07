@@ -14,6 +14,8 @@ export interface EditorState {
     shapes?: ShapeElement[];
     cropSettings?: CropSettings;
     transformSettings?: TransformSettings;
+    leftPanelWidth?: number;
+    rightPanelWidth?: number;
 }
 
 export interface ShapeElement {
@@ -77,6 +79,8 @@ export interface TextElement {
 }
 
 export interface QuoteElement extends TextElement {
+    width: number;
+    height: number;
     isCodeSnippet: boolean;
     codeColors: {
         keyword: string;
@@ -206,6 +210,8 @@ export const resetEditorDefaults = (): EditorState => {
             skewY: 0,
             flipH: false,
             flipV: false
-        }
+        },
+        leftPanelWidth: 320,
+        rightPanelWidth: 300
     };
 };

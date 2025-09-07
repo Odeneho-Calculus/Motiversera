@@ -80,11 +80,14 @@ export default function DraggableText({
             console.log('🔄 Resizing text:', currentElement.id, { newFontSize, distance, direction });
             currentOnUpdate(currentElement.id, { fontSize: newFontSize });
         } else {
-            // Handle drag
-            const newX = Math.max(0, Math.min(1080, dragState.elementX + deltaX * scaleX));
-            const newY = Math.max(0, Math.min(1920, dragState.elementY + deltaY * scaleY));
+            // Handle drag - convert screen movement to canvas coordinates properly
+            const canvasX = dragState.elementX + (deltaX * (1080 / rect.width));
+            const canvasY = dragState.elementY + (deltaY * (1920 / rect.height));
 
-            console.log('🔄 Dragging element:', currentElement.id, { newX, newY, deltaX, deltaY, scaleX, scaleY });
+            const newX = Math.max(0, Math.min(1080, canvasX));
+            const newY = Math.max(0, Math.min(1920, canvasY));
+
+            console.log('🔄 Dragging element:', currentElement.id, { newX, newY, deltaX, deltaY, canvasX, canvasY });
             currentOnUpdate(currentElement.id, { x: newX, y: newY });
         }
     };
@@ -170,12 +173,12 @@ export default function DraggableText({
         setIsEditing(false);
     };
 
-    const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         onUpdate(element.id, { text: e.target.value });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && e.ctrlKey) {
             setIsEditing(false);
             e.currentTarget.blur();
         }
@@ -257,8 +260,7 @@ export default function DraggableText({
             )}
 
             {isEditing ? (
-                <input
-                    type="text"
+                <textarea
                     value={element.text}
                     onChange={handleTextChange}
                     onBlur={handleBlur}
@@ -273,12 +275,24 @@ export default function DraggableText({
                         background: 'rgba(255, 255, 255, 0.1)',
                         border: '1px solid rgba(255, 255, 255, 0.3)',
                         borderRadius: '4px',
-                        padding: '2px 4px',
+                        padding: '8px',
+                        resize: 'none',
+                        width: '100%',
+                        minWidth: '200px',
+                        maxWidth: '600px',
+                        minHeight: `${40 * Math.min(scaleX, scaleY)}px`,
+                        boxSizing: 'border-box',
                     }}
                     autoFocus
                 />
             ) : (
-                <span>{element.text}</span>
+                <div style={{
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    overflowWrap: 'break-word'
+                }}>
+                    {element.text}
+                </div>
             )}
         </div>
     );

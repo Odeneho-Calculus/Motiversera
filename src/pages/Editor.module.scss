@@ -159,6 +159,8 @@
     display: flex;
     flex-direction: column;
     min-width: 0; // Prevent flex items from overflowing
+    position: relative; // For resize handle positioning
+    container-type: inline-size; // Enable container queries
 
     // Custom scrollbar
     &::-webkit-scrollbar {
@@ -197,6 +199,49 @@
     }
 }
 
+// Resize handle for panels
+.resizeHandle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    z-index: 1000;
+    background: transparent;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+        background: rgba($color-primary, 0.3);
+    }
+
+    &:active {
+        background: rgba($color-primary, 0.5);
+    }
+
+    // Add a visual indicator on hover
+    &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 2px;
+        height: 20px;
+        background: rgba($color-muted, 0.5);
+        border-radius: 1px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    &:hover::after {
+        opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+        display: none; // Hide on mobile
+    }
+}
+
 .toolPanel {
     padding: 20px;
     display: flex;
@@ -223,15 +268,48 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 8px;
+    gap: 8px; // Add gap for better spacing
 
     h3,
-    h4 {
+    h4,
+    label {
         margin: 0;
         font-size: 14px;
         font-weight: 600;
         color: $color-text;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        line-height: 1.2;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // Responsive adjustments for narrow panels
+    @container (max-width: 350px) {
+
+        h3,
+        h4,
+        label {
+            font-size: 12px;
+            letter-spacing: 0.3px;
+        }
+
+        gap: 6px;
+    }
+
+    @container (max-width: 280px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+
+        h3,
+        h4,
+        label {
+            font-size: 11px;
+            text-align: center;
+        }
     }
 }
 
@@ -239,12 +317,34 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+
+    // Adjust for narrower panels
+    @container (max-width: 300px) {
+        flex-direction: column;
+        gap: 6px;
+
+        button {
+            font-size: 11px;
+            padding: 6px 10px;
+        }
+    }
 }
 
 .panelSection {
     padding-top: 16px;
     border-top: 1px solid rgba($color-border, 0.2);
     margin-top: 16px;
+
+    // Responsive adjustments for narrow panels
+    @container (max-width: 350px) {
+        padding-top: 12px;
+        margin-top: 12px;
+    }
+
+    @container (max-width: 280px) {
+        padding-top: 8px;
+        margin-top: 8px;
+    }
 
     &:first-child {
         padding-top: 0;
@@ -382,12 +482,32 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    align-items: center;
+    align-items: start; // Changed from center to start for better alignment
 
     label {
         font-size: 12px;
         font-weight: 500;
         color: $color-text;
+        margin-bottom: 4px; // Add margin for better spacing in stacked layout
+    }
+
+    // Responsive adjustments for narrow panels
+    @container (max-width: 350px) {
+        grid-template-columns: 1fr;
+        gap: 10px;
+
+        label {
+            margin-bottom: 2px;
+            font-size: 11px;
+        }
+    }
+
+    @container (max-width: 280px) {
+        gap: 8px;
+
+        label {
+            font-size: 10px;
+        }
     }
 
     @media (max-width: 768px) {
@@ -427,6 +547,8 @@
     border-radius: 2px;
     outline: none;
     transition: all 0.2s ease;
+    width: 100%;
+    min-width: 0; // Prevent overflow
 
     &::-webkit-slider-thumb {
         -webkit-appearance: none;
@@ -438,6 +560,17 @@
         cursor: pointer;
         border: 2px solid white;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+        // Smaller thumbs for narrow panels
+        @container (max-width: 350px) {
+            width: 14px;
+            height: 14px;
+        }
+
+        @container (max-width: 280px) {
+            width: 12px;
+            height: 12px;
+        }
     }
 
     &::-moz-range-thumb {
@@ -448,10 +581,25 @@
         cursor: pointer;
         border: 2px solid white;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+        // Smaller thumbs for narrow panels
+        @container (max-width: 350px) {
+            width: 14px;
+            height: 14px;
+        }
+
+        @container (max-width: 280px) {
+            width: 12px;
+            height: 12px;
+        }
     }
 
     &:hover {
         background: rgba($color-border, 0.5);
+    }
+
+    &:focus {
+        background: rgba($color-primary, 0.3);
     }
 }
 
@@ -464,9 +612,25 @@
     background: transparent;
     outline: none;
     transition: all 0.2s ease;
+    min-width: 0; // Prevent overflow
+    box-sizing: border-box;
+
+    // Responsive adjustments for narrow panels
+    @container (max-width: 350px) {
+        height: 28px;
+    }
+
+    @container (max-width: 280px) {
+        height: 24px;
+    }
 
     &:hover {
         border-color: $color-primary;
+    }
+
+    &:focus {
+        border-color: $color-primary;
+        box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
     }
 }
 
@@ -502,10 +666,20 @@
 // Media Grid
 .mediaGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
     gap: 8px;
     max-height: 300px;
     overflow-y: auto;
+
+    // Responsive grid for different panel widths
+    // When panel is wider, show more columns
+    @container (min-width: 400px) {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+
+    @container (min-width: 500px) {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    }
 
     @media (max-width: 768px) {
         max-height: 200px;
